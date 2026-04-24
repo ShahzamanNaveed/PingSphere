@@ -1,0 +1,25 @@
+{
+  "name": "pingsphere",
+  "version": "1.0.0",
+  "description": "PingSphere is a real-time chat application built using the MERN stack that enables users to communicate  instantly through one-to-one messaging. The system focuses on simplicity, speed, and reliability, providing a  clean and responsive messaging experience.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "start": "npm run start --prefix server"
+},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShahzamanNaveed/PingSphere.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ShahzamanNaveed/PingSphere/issues"
+  },
+  "homepage": "https://github.com/ShahzamanNaveed/PingSphere#readme",
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
