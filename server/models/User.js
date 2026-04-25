@@ -1,5 +1,5 @@
 import mongoose from 'mongoose'
-import bcrypt from 'bcryptjs'
+import bcryptjs from 'bcryptjs'
 
 const userSchema = new mongoose.Schema(
   {
@@ -29,17 +29,14 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 )
 
-// pre-save hook — runs before every .save()
-userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) return next()
-  const salt = await bcrypt.genSalt(10)
-  this.password = await bcrypt.hash(this.password, salt)
-  next()
+userSchema.pre('save', async function () {
+  if (!this.isModified('password')) return
+  const salt = await bcryptjs.genSalt(10)
+  this.password = await bcryptjs.hash(this.password, salt)
 })
 
-// instance method — available on every user document
 userSchema.methods.comparePassword = async function (enteredPassword) {
-  return bcrypt.compare(enteredPassword, this.password)
+  return bcryptjs.compare(enteredPassword, this.password)
 }
 
 const User = mongoose.model('User', userSchema)
