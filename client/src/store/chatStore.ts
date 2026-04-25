@@ -27,12 +27,16 @@ interface Conversation {
 interface ChatStore {
   conversations: Conversation[]
   messages: Message[]
+  users: User[]
   selectedConversation: Conversation | null
   onlineUsers: string[]
   isMessagesLoading: boolean
   isConversationsLoading: boolean
+  isUsersLoading: boolean
   setSelectedConversation: (conversation: Conversation | null) => void
   getConversations: () => Promise<void>
+  getUsers: () => Promise<void>
+  createConversation: (recipientId: string) => Promise<void>
   getMessages: (conversationId: string) => Promise<void>
   sendMessage: (conversationId: string, text: string) => Promise<void>
   subscribeToMessages: () => void
@@ -43,10 +47,12 @@ interface ChatStore {
 const useChatStore = create<ChatStore>((set, get) => ({
   conversations: [],
   messages: [],
+  users: [],
   selectedConversation: null,
   onlineUsers: [],
   isMessagesLoading: false,
   isConversationsLoading: false,
+  isUsersLoading: false,
 
   setSelectedConversation: (conversation) => {
     set({ selectedConversation: conversation })
@@ -54,6 +60,35 @@ const useChatStore = create<ChatStore>((set, get) => ({
 
   setOnlineUsers: (users) => {
     set({ onlineUsers: users })
+  },
+
+  getUsers: async () => {
+    set({ isUsersLoading: true })
+    try {
+      const res = await axiosInstance.get('/users')
+      set({ users: res.data, isUsersLoading: false })
+    } catch (error) {
+      set({ isUsersLoading: false })
+    }
+  },
+
+  createConversation: async (recipientId) => {
+    try {
+      const res = await axiosInstance.post('/conversations', { recipientId })
+      const newConversation = res.data
+
+      // add to conversations list if not already there
+      set((state) => {
+        const exists = state.conversations.find((c) => c._id === newConversation._id)
+        if (exists) return { selectedConversation: newConversation }
+        return {
+          conversations: [newConversation, ...state.conversations],
+          selectedConversation: newConversation,
+        }
+      })
+    } catch (error) {
+      console.error('createConversation error:', error)
+    }
   },
 
   getConversations: async () => {
@@ -77,11 +112,10 @@ const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   sendMessage: async (conversationId, text) => {
-  const socket = getSocket()
-  if (!socket) return
-
-  socket.emit('sendMessage', { conversationId, text })
-},
+    const socket = getSocket()
+    if (!socket) return
+    socket.emit('sendMessage', { conversationId, text })
+  },
 
   subscribeToMessages: () => {
     const socket = getSocket()
