@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import axiosInstance from '../lib/axios'
+import { connectSocket, disconnectSocket } from '../lib/socket'
 
 interface User {
   _id: string
@@ -28,6 +29,7 @@ const useAuthStore = create<AuthStore>((set) => ({
     try {
       const res = await axiosInstance.get('/auth/me')
       set({ user: res.data, isLoading: false })
+      connectSocket()
     } catch {
       set({ user: null, isLoading: false })
     }
@@ -38,6 +40,7 @@ const useAuthStore = create<AuthStore>((set) => ({
     try {
       const res = await axiosInstance.post('/auth/register', { username, email, password })
       set({ user: res.data, isLoading: false })
+      connectSocket()
     } catch (error: any) {
       set({ error: error.response?.data?.message || 'Something went wrong', isLoading: false })
     }
@@ -48,19 +51,21 @@ const useAuthStore = create<AuthStore>((set) => ({
     try {
       const res = await axiosInstance.post('/auth/login', { email, password })
       set({ user: res.data, isLoading: false })
+      connectSocket()
     } catch (error: any) {
       set({ error: error.response?.data?.message || 'Something went wrong', isLoading: false })
     }
   },
 
   logout: async () => {
-  try {
-    await axiosInstance.post('/auth/logout')
-    set({ user: null, isLoading: false, error: null })
-  } catch (error: any) {
-    set({ error: error.response?.data?.message || 'Something went wrong', isLoading: false })
-  }
-},
+    try {
+      await axiosInstance.post('/auth/logout')
+      disconnectSocket()
+      set({ user: null, isLoading: false, error: null })
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || 'Something went wrong', isLoading: false })
+    }
+  },
 }))
 
 export default useAuthStore
