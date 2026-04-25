@@ -4,6 +4,9 @@ import morgan from 'morgan'
 import cookieParser from 'cookie-parser'
 import authRoutes from './routes/auth.routes.js'
 import protectRoute from './middleware/protectRoute.js'
+import userRoutes from './routes/user.routes.js'
+import conversationRoutes from './routes/conversation.routes.js'
+import messageRoutes from './routes/message.routes.js'
 
 const app = express()
 
@@ -14,7 +17,9 @@ app.use(cookieParser())
 
 // Routes
 app.use('/api/auth', authRoutes)
-
+app.use('/api/users', userRoutes)
+app.use('/api/conversations', conversationRoutes)
+app.use('/api/messages', messageRoutes)
 
 
 app.get('/', (req, res) => {
