@@ -9,12 +9,11 @@ const generateToken = (userId) => {
 }
 
 const setTokenCookie = (res, token) => {
-  const isProduction = process.env.NODE_ENV === 'production'
   res.cookie('jwt', token, {
     httpOnly: true,
     maxAge: 7 * 24 * 60 * 60 * 1000,
-    secure: isProduction,
-    sameSite: isProduction ? 'strict' : 'lax',
+    secure: true,
+    sameSite: 'none',
   })
 }
 
@@ -23,19 +22,15 @@ export const register = async (req, res) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({ message: errors.array()[0].msg })
   }
-
   const { username, email, password } = req.body
-
   try {
     const existingUser = await User.findOne({ email })
     if (existingUser) {
       return res.status(400).json({ message: 'Email already in use' })
     }
-
     const user = await User.create({ username, email, password })
     const token = generateToken(user._id)
     setTokenCookie(res, token)
-
     res.status(201).json({
       _id: user._id,
       username: user.username,
@@ -53,23 +48,18 @@ export const login = async (req, res) => {
   if (!errors.isEmpty()) {
     return res.status(400).json({ message: errors.array()[0].msg })
   }
-
   const { email, password } = req.body
-
   try {
     const user = await User.findOne({ email })
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' })
     }
-
     const isMatch = await user.comparePassword(password)
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' })
     }
-
     const token = generateToken(user._id)
     setTokenCookie(res, token)
-
     res.status(200).json({
       _id: user._id,
       username: user.username,
@@ -83,7 +73,11 @@ export const login = async (req, res) => {
 }
 
 export const logout = async (req, res) => {
-  res.clearCookie('jwt')
+  res.clearCookie('jwt', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+  })
   res.status(200).json({ message: 'Logged out successfully' })
 }
 
