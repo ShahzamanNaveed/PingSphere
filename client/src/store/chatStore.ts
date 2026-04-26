@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import toast from 'react-hot-toast'
 import axiosInstance from '../lib/axios'
 import { getSocket } from '../lib/socket'
 
@@ -86,7 +87,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const res = await axiosInstance.get('/users')
       set({ users: res.data, isUsersLoading: false })
-    } catch (error) {
+    } catch {
       set({ isUsersLoading: false })
     }
   },
@@ -95,7 +96,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const res = await axiosInstance.post('/conversations', { recipientId })
       const newConversation = res.data
-
       set((state) => {
         const exists = state.conversations.find((c) => c._id === newConversation._id)
         if (exists) return { selectedConversation: newConversation }
@@ -104,8 +104,8 @@ const useChatStore = create<ChatStore>((set, get) => ({
           selectedConversation: newConversation,
         }
       })
-    } catch (error) {
-      console.error('createConversation error:', error)
+    } catch {
+      toast.error('Could not start conversation')
     }
   },
 
@@ -114,8 +114,9 @@ const useChatStore = create<ChatStore>((set, get) => ({
     try {
       const res = await axiosInstance.get('/conversations')
       set({ conversations: res.data, isConversationsLoading: false })
-    } catch (error) {
+    } catch {
       set({ isConversationsLoading: false })
+      toast.error('Could not load chats')
     }
   },
 
@@ -128,15 +129,15 @@ const useChatStore = create<ChatStore>((set, get) => ({
         isMessagesLoading: false,
         hasMoreMessages: res.data.length === 30,
       })
-    } catch (error) {
+    } catch {
       set({ isMessagesLoading: false })
+      toast.error('Could not load messages')
     }
   },
 
   loadMoreMessages: async (conversationId) => {
     const { messages, hasMoreMessages } = get()
     if (!hasMoreMessages || messages.length === 0) return
-
     const oldestMessage = messages[0]
     try {
       const res = await axiosInstance.get(
@@ -150,14 +151,17 @@ const useChatStore = create<ChatStore>((set, get) => ({
         messages: [...res.data, ...messages],
         hasMoreMessages: res.data.length === 30,
       })
-    } catch (error) {
-      console.error('loadMoreMessages error:', error)
+    } catch {
+      toast.error('Could not load older messages')
     }
   },
 
   sendMessage: async (conversationId, text) => {
     const socket = getSocket()
-    if (!socket) return
+    if (!socket) {
+      toast.error('Not connected. Please refresh.')
+      return
+    }
     socket.emit('sendMessage', { conversationId, text })
   },
 

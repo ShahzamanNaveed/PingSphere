@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import toast from 'react-hot-toast'
 import axiosInstance from '../lib/axios'
 import { connectSocket, disconnectSocket } from '../lib/socket'
 import useChatStore from './chatStore'
@@ -44,8 +45,11 @@ const useAuthStore = create<AuthStore>((set) => ({
       set({ user: res.data, isLoading: false })
       connectSocket()
       useChatStore.getState().subscribeToMessages()
+      toast.success('Account created!')
     } catch (error: any) {
-      set({ error: error.response?.data?.message || 'Something went wrong', isLoading: false })
+      const message = error.response?.data?.message || 'Something went wrong'
+      set({ error: message, isLoading: false })
+      toast.error(message)
     }
   },
 
@@ -56,8 +60,11 @@ const useAuthStore = create<AuthStore>((set) => ({
       set({ user: res.data, isLoading: false })
       connectSocket()
       useChatStore.getState().subscribeToMessages()
+      toast.success('Welcome back!')
     } catch (error: any) {
-      set({ error: error.response?.data?.message || 'Something went wrong', isLoading: false })
+      const message = error.response?.data?.message || 'Something went wrong'
+      set({ error: message, isLoading: false })
+      toast.error(message)
     }
   },
 
@@ -67,8 +74,9 @@ const useAuthStore = create<AuthStore>((set) => ({
       disconnectSocket()
       useChatStore.getState().unsubscribeFromMessages()
       set({ user: null, isLoading: false, error: null })
+      toast.success('Logged out')
     } catch (error: any) {
-      set({ error: error.response?.data?.message || 'Something went wrong', isLoading: false })
+      toast.error(error.response?.data?.message || 'Something went wrong')
     }
   },
 }))
