@@ -2,36 +2,39 @@ import jwt from 'jsonwebtoken'
 import { validationResult } from 'express-validator'
 import User from '../models/User.js'
 
-const generateToken = (userId, res) => {
-  const token = jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN,
+const generateToken = (userId) => {
+  return jwt.sign({ userId }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   })
+}
 
+const setTokenCookie = (res, token) => {
+  const isProduction = process.env.NODE_ENV === 'production'
   res.cookie('jwt', token, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    secure: isProduction,
+    sameSite: isProduction ? 'strict' : 'lax',
   })
 }
 
 export const register = async (req, res) => {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg })
+  }
+
+  const { username, email, password } = req.body
+
   try {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.array()[0].msg })
-    }
-
-    const { username, email, password } = req.body
-
-    const existingUser = await User.findOne({ $or: [{ email }, { username }] })
+    const existingUser = await User.findOne({ email })
     if (existingUser) {
-      return res.status(400).json({ message: 'Email or username already taken' })
+      return res.status(400).json({ message: 'Email already in use' })
     }
 
     const user = await User.create({ username, email, password })
-
-    generateToken(user._id, res)
+    const token = generateToken(user._id)
+    setTokenCookie(res, token)
 
     res.status(201).json({
       _id: user._id,
@@ -40,31 +43,32 @@ export const register = async (req, res) => {
       profilePic: user.profilePic,
     })
   } catch (error) {
-    console.error('Register error:', error.message)
+    console.error('register error:', error.message)
     res.status(500).json({ message: 'Server error' })
   }
 }
 
 export const login = async (req, res) => {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ message: errors.array()[0].msg })
+  }
+
+  const { email, password } = req.body
+
   try {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ message: errors.array()[0].msg })
-    }
-
-    const { email, password } = req.body
-
     const user = await User.findOne({ email })
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' })
     }
 
-    const isPasswordCorrect = await user.comparePassword(password)
-    if (!isPasswordCorrect) {
+    const isMatch = await user.comparePassword(password)
+    if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' })
     }
 
-    generateToken(user._id, res)
+    const token = generateToken(user._id)
+    setTokenCookie(res, token)
 
     res.status(200).json({
       _id: user._id,
@@ -73,13 +77,13 @@ export const login = async (req, res) => {
       profilePic: user.profilePic,
     })
   } catch (error) {
-    console.error('Login error:', error.message)
+    console.error('login error:', error.message)
     res.status(500).json({ message: 'Server error' })
   }
 }
 
-export const logout = (req, res) => {
-  res.cookie('jwt', '', { maxAge: 0 })
+export const logout = async (req, res) => {
+  res.clearCookie('jwt')
   res.status(200).json({ message: 'Logged out successfully' })
 }
 
