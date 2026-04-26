@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
 
@@ -13,8 +14,10 @@ const Sidebar = () => {
     getUsers,
     createConversation,
     isUsersLoading,
+    isTyping,
   } = useChatStore()
 
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [showModal, setShowModal] = useState(false)
 
@@ -42,12 +45,16 @@ const Sidebar = () => {
   })
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full">
+    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full w-full">
 
       {/* Header */}
       <div className="p-4 border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">
+          <div
+            onClick={() => navigate('/profile')}
+            className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:opacity-80 transition-opacity"
+            title="View profile"
+          >
             {user?.username.charAt(0).toUpperCase()}
           </div>
           <span className="font-semibold text-gray-800">{user?.username}</span>
@@ -102,8 +109,14 @@ const Sidebar = () => {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 text-sm">{other?.username}</p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {conversation.lastMessage ? conversation.lastMessage.text : 'No messages yet'}
+                  <p className="text-xs truncate">
+                    {isTyping === conversation._id ? (
+                      <span className="text-blue-400 italic">typing...</span>
+                    ) : conversation.lastMessage ? (
+                      <span className="text-gray-400">{conversation.lastMessage.text}</span>
+                    ) : (
+                      <span className="text-gray-400">No messages yet</span>
+                    )}
                   </p>
                 </div>
               </div>

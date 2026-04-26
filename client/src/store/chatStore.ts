@@ -30,18 +30,23 @@ interface ChatStore {
   users: User[]
   selectedConversation: Conversation | null
   onlineUsers: string[]
+  isTyping: string | null
   isMessagesLoading: boolean
   isConversationsLoading: boolean
   isUsersLoading: boolean
+  hasMoreMessages: boolean
   setSelectedConversation: (conversation: Conversation | null) => void
   getConversations: () => Promise<void>
   getUsers: () => Promise<void>
   createConversation: (recipientId: string) => Promise<void>
   getMessages: (conversationId: string) => Promise<void>
+  loadMoreMessages: (conversationId: string) => Promise<void>
   sendMessage: (conversationId: string, text: string) => Promise<void>
   subscribeToMessages: () => void
   unsubscribeFromMessages: () => void
   setOnlineUsers: (users: string[]) => void
+  emitTyping: (conversationId: string) => void
+  emitStopTyping: (conversationId: string) => void
 }
 
 const useChatStore = create<ChatStore>((set, get) => ({
@@ -50,9 +55,11 @@ const useChatStore = create<ChatStore>((set, get) => ({
   users: [],
   selectedConversation: null,
   onlineUsers: [],
+  isTyping: null,
   isMessagesLoading: false,
   isConversationsLoading: false,
   isUsersLoading: false,
+  hasMoreMessages: false,
 
   setSelectedConversation: (conversation) => {
     set({ selectedConversation: conversation })
@@ -60,6 +67,18 @@ const useChatStore = create<ChatStore>((set, get) => ({
 
   setOnlineUsers: (users) => {
     set({ onlineUsers: users })
+  },
+
+  emitTyping: (conversationId) => {
+    const socket = getSocket()
+    if (!socket) return
+    socket.emit('typing', { conversationId })
+  },
+
+  emitStopTyping: (conversationId) => {
+    const socket = getSocket()
+    if (!socket) return
+    socket.emit('stopTyping', { conversationId })
   },
 
   getUsers: async () => {
@@ -77,7 +96,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
       const res = await axiosInstance.post('/conversations', { recipientId })
       const newConversation = res.data
 
-      // add to conversations list if not already there
       set((state) => {
         const exists = state.conversations.find((c) => c._id === newConversation._id)
         if (exists) return { selectedConversation: newConversation }
@@ -105,9 +123,35 @@ const useChatStore = create<ChatStore>((set, get) => ({
     set({ isMessagesLoading: true })
     try {
       const res = await axiosInstance.get(`/messages/${conversationId}`)
-      set({ messages: res.data, isMessagesLoading: false })
+      set({
+        messages: res.data,
+        isMessagesLoading: false,
+        hasMoreMessages: res.data.length === 30,
+      })
     } catch (error) {
       set({ isMessagesLoading: false })
+    }
+  },
+
+  loadMoreMessages: async (conversationId) => {
+    const { messages, hasMoreMessages } = get()
+    if (!hasMoreMessages || messages.length === 0) return
+
+    const oldestMessage = messages[0]
+    try {
+      const res = await axiosInstance.get(
+        `/messages/${conversationId}?before=${oldestMessage._id}`
+      )
+      if (res.data.length === 0) {
+        set({ hasMoreMessages: false })
+        return
+      }
+      set({
+        messages: [...res.data, ...messages],
+        hasMoreMessages: res.data.length === 30,
+      })
+    } catch (error) {
+      console.error('loadMoreMessages error:', error)
     }
   },
 
@@ -121,12 +165,25 @@ const useChatStore = create<ChatStore>((set, get) => ({
     const socket = getSocket()
     if (!socket) return
 
+    socket.off('newMessage')
+    socket.off('onlineUsers')
+    socket.off('typing')
+    socket.off('stopTyping')
+
     socket.on('newMessage', (message: Message) => {
       set((state) => ({ messages: [...state.messages, message] }))
     })
 
     socket.on('onlineUsers', (users: string[]) => {
       set({ onlineUsers: users })
+    })
+
+    socket.on('typing', ({ conversationId }: { conversationId: string }) => {
+      set({ isTyping: conversationId })
+    })
+
+    socket.on('stopTyping', () => {
+      set({ isTyping: null })
     })
   },
 
@@ -135,6 +192,8 @@ const useChatStore = create<ChatStore>((set, get) => ({
     if (!socket) return
     socket.off('newMessage')
     socket.off('onlineUsers')
+    socket.off('typing')
+    socket.off('stopTyping')
   },
 }))
 

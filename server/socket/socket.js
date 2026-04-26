@@ -16,7 +16,6 @@ export const initSocket = (server) => {
     },
   })
 
-  // JWT verification middleware
   io.use((socket, next) => {
     try {
       const cookies = cookie.parse(socket.handshake.headers.cookie || '')
@@ -40,7 +39,6 @@ export const initSocket = (server) => {
     presenceMap.set(socket.userId, socket.id)
     io.emit('onlineUsers', Array.from(presenceMap.keys()))
 
-    // Handle sendMessage event
     socket.on('sendMessage', async ({ conversationId, text }) => {
       try {
         const message = await Message.create({
@@ -54,7 +52,6 @@ export const initSocket = (server) => {
           updatedAt: new Date(),
         })
 
-        // Find the recipient and emit to them
         const conversation = await Conversation.findById(conversationId)
         const recipientId = conversation.participants.find(
           (id) => id.toString() !== socket.userId
@@ -65,11 +62,36 @@ export const initSocket = (server) => {
           io.to(recipientSocketId).emit('newMessage', message)
         }
 
-        // Also emit back to sender
         socket.emit('newMessage', message)
       } catch (error) {
         console.error('sendMessage error:', error.message)
       }
+    })
+
+    socket.on('typing', ({ conversationId }) => {
+      Conversation.findById(conversationId).then((conv) => {
+        if (!conv) return
+        const recipientId = conv.participants.find(
+          (id) => id.toString() !== socket.userId
+        )
+        const recipientSocketId = presenceMap.get(recipientId?.toString())
+        if (recipientSocketId) {
+          io.to(recipientSocketId).emit('typing', { conversationId })
+        }
+      })
+    })
+
+    socket.on('stopTyping', ({ conversationId }) => {
+      Conversation.findById(conversationId).then((conv) => {
+        if (!conv) return
+        const recipientId = conv.participants.find(
+          (id) => id.toString() !== socket.userId
+        )
+        const recipientSocketId = presenceMap.get(recipientId?.toString())
+        if (recipientSocketId) {
+          io.to(recipientSocketId).emit('stopTyping', { conversationId })
+        }
+      })
     })
 
     socket.on('disconnect', () => {
