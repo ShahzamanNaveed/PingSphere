@@ -10,11 +10,12 @@ export const getSocketId = (userId) => presenceMap.get(userId)
 
 export const initSocket = (server) => {
   const io = new Server(server, {
-    cors: {
-      origin: 'http://localhost:5173',
-      credentials: true,
-    },
-  })
+  cors: {
+    origin: process.env.CLIENT_URL,
+    credentials: true,
+  },
+  transports: process.env.NODE_ENV === 'production' ? ['websocket'] : ['polling', 'websocket'],
+})
 
   io.use((socket, next) => {
     try {
