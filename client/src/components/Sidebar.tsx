@@ -4,6 +4,16 @@ import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
 import TypingDots from './TypingDots'
 
+const ConversationSkeleton = () => (
+  <div className="flex items-center gap-3 p-4 animate-pulse">
+    <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+    <div className="flex-1 space-y-2">
+      <div className="h-3 bg-gray-200 rounded w-1/2" />
+      <div className="h-3 bg-gray-200 rounded w-3/4" />
+    </div>
+  </div>
+)
+
 const Sidebar = () => {
   const { user, logout } = useAuthStore()
   const {
@@ -15,6 +25,7 @@ const Sidebar = () => {
     getUsers,
     createConversation,
     isUsersLoading,
+    isConversationsLoading,
     isTyping,
     onlineUsers,
   } = useChatStore()
@@ -91,7 +102,15 @@ const Sidebar = () => {
 
       {/* Conversation list */}
       <div className="flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
+        {isConversationsLoading ? (
+          <>
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+            <ConversationSkeleton />
+          </>
+        ) : filtered.length === 0 ? (
           <p className="text-center text-gray-400 text-sm mt-8">No conversations yet</p>
         ) : (
           filtered.map((conversation) => {
@@ -152,7 +171,11 @@ const Sidebar = () => {
 
             <div className="flex-1 overflow-y-auto">
               {isUsersLoading ? (
-                <p className="text-center text-gray-400 text-sm mt-8">Loading users...</p>
+                <>
+                  <ConversationSkeleton />
+                  <ConversationSkeleton />
+                  <ConversationSkeleton />
+                </>
               ) : users.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm mt-8">No users found</p>
               ) : (

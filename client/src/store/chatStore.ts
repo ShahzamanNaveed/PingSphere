@@ -16,6 +16,7 @@ interface Message {
   text: string
   seen: boolean
   createdAt: string
+  pending?: boolean
 }
 
 interface Conversation {
@@ -42,7 +43,7 @@ interface ChatStore {
   createConversation: (recipientId: string) => Promise<void>
   getMessages: (conversationId: string) => Promise<void>
   loadMoreMessages: (conversationId: string) => Promise<void>
-  sendMessage: (conversationId: string, text: string) => Promise<void>
+  sendMessage: (conversationId: string, text: string) => void
   subscribeToMessages: () => void
   unsubscribeFromMessages: () => void
   setOnlineUsers: (users: string[]) => void
@@ -156,12 +157,27 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
-  sendMessage: async (conversationId, text) => {
+  sendMessage: (conversationId, text) => {
     const socket = getSocket()
     if (!socket) {
       toast.error('Not connected. Please refresh.')
       return
     }
+
+    // create a temp message and append it immediately
+    const tempId = `temp_${Date.now()}`
+    const tempMessage: Message = {
+      _id: tempId,
+      conversationId,
+      senderId: 'me',
+      text,
+      seen: false,
+      createdAt: new Date().toISOString(),
+      pending: true,
+    }
+
+    set((state) => ({ messages: [...state.messages, tempMessage] }))
+
     socket.emit('sendMessage', { conversationId, text })
   },
 
@@ -176,11 +192,32 @@ const useChatStore = create<ChatStore>((set, get) => ({
 
     socket.on('newMessage', (message: Message) => {
       set((state) => {
-        // update messages if this conversation is open
-        const updatedMessages =
-          state.selectedConversation?._id === message.conversationId
+        const isMyMessage = message.senderId !== state.selectedConversation?.participants.find(
+          (p) => p._id !== message.senderId
+        )?._id
+
+        // replace the latest pending message with the real one (if it's mine)
+        let updatedMessages
+        if (isMyMessage) {
+          const lastPendingIndex = [...state.messages]
+            .reverse()
+            .findIndex((m) => m.pending)
+          if (lastPendingIndex !== -1) {
+            const realIndex = state.messages.length - 1 - lastPendingIndex
+            updatedMessages = state.messages.map((m, i) =>
+              i === realIndex ? { ...message, pending: false } : m
+            )
+          } else {
+            updatedMessages = state.selectedConversation?._id === message.conversationId
+              ? [...state.messages, message]
+              : state.messages
+          }
+        } else {
+          // it's from the other person, just append
+          updatedMessages = state.selectedConversation?._id === message.conversationId
             ? [...state.messages, message]
             : state.messages
+        }
 
         // update lastMessage and re-sort conversations to top
         const updatedConversations = state.conversations
