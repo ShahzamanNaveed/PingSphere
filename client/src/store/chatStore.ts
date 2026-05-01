@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import toast from 'react-hot-toast'
 import axiosInstance from '../lib/axios'
 import { getSocket } from '../lib/socket'
+import useAuthStore from './authStore'
 
 interface User {
   _id: string
@@ -164,12 +165,12 @@ const useChatStore = create<ChatStore>((set, get) => ({
       return
     }
 
-    // create a temp message and append it immediately
+    const currentUser = useAuthStore.getState().user
     const tempId = `temp_${Date.now()}`
     const tempMessage: Message = {
       _id: tempId,
       conversationId,
-      senderId: 'me',
+      senderId: currentUser?._id || '',
       text,
       seen: false,
       createdAt: new Date().toISOString(),
@@ -177,7 +178,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
 
     set((state) => ({ messages: [...state.messages, tempMessage] }))
-
     socket.emit('sendMessage', { conversationId, text })
   },
 
@@ -192,34 +192,21 @@ const useChatStore = create<ChatStore>((set, get) => ({
 
     socket.on('newMessage', (message: Message) => {
       set((state) => {
-        const isMyMessage = message.senderId !== state.selectedConversation?.participants.find(
-          (p) => p._id !== message.senderId
-        )?._id
+        const currentUser = useAuthStore.getState().user
+        const isMyMessage = message.senderId === currentUser?._id
 
-        // replace the latest pending message with the real one (if it's mine)
         let updatedMessages
         if (isMyMessage) {
-          const lastPendingIndex = [...state.messages]
-            .reverse()
-            .findIndex((m) => m.pending)
-          if (lastPendingIndex !== -1) {
-            const realIndex = state.messages.length - 1 - lastPendingIndex
-            updatedMessages = state.messages.map((m, i) =>
-              i === realIndex ? { ...message, pending: false } : m
-            )
-          } else {
-            updatedMessages = state.selectedConversation?._id === message.conversationId
-              ? [...state.messages, message]
-              : state.messages
-          }
+          // remove pending temp message and replace with confirmed one
+          const withoutPending = state.messages.filter((m) => !m.pending)
+          updatedMessages = [...withoutPending, { ...message, pending: false }]
         } else {
-          // it's from the other person, just append
+          // message from other person, just append if conversation is open
           updatedMessages = state.selectedConversation?._id === message.conversationId
             ? [...state.messages, message]
             : state.messages
         }
 
-        // update lastMessage and re-sort conversations to top
         const updatedConversations = state.conversations
           .map((c) =>
             c._id === message.conversationId

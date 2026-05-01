@@ -136,7 +136,7 @@ const ChatArea = () => {
               <p className="text-center text-gray-400 text-sm mt-8">No messages yet. Say hello!</p>
             ) : (
               messages.map((message, index) => {
-                const isMine = message.senderId === user?._id
+                const isMine = message.senderId === user?._id || message.pending === true
                 const showDivider =
                   index === 0 ||
                   getDateLabel(message.createdAt) !== getDateLabel(messages[index - 1].createdAt)
@@ -152,10 +152,11 @@ const ChatArea = () => {
                     )}
                     <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                       <div
-                        className={`max-w-xs w-fit px-4 py-2 rounded-2xl text-sm break-words transition-opacity ${isMine
-                            ? `bg-blue-500 text-white rounded-br-sm ${message.pending ? 'opacity-60' : 'opacity-100'}`
+                        className={`max-w-xs w-fit px-4 py-2 rounded-2xl text-sm break-words ${
+                          isMine
+                            ? `${message.pending ? 'bg-blue-300' : 'bg-blue-500'} text-white rounded-br-sm`
                             : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
-                          }`}
+                        }`}
                       >
                         <p className="whitespace-pre-wrap break-words">{message.text}</p>
                         <p className={`text-xs mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
