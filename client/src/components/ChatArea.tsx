@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
+import TypingDots from './TypingDots'
 
 const ChatArea = () => {
   const { user } = useAuthStore()
@@ -75,7 +76,7 @@ const ChatArea = () => {
         <div>
           <p className="font-semibold text-gray-800 text-sm">{otherUser?.username}</p>
           {isTyping === selectedConversation._id ? (
-            <p className="text-xs text-blue-400 italic">typing...</p>
+            <p className="text-xs flex items-center gap-1 text-blue-400">typing <TypingDots /></p>
           ) : (
             <p className={`text-xs ${isOnline ? 'text-green-500' : 'text-gray-400'}`}>
               {isOnline ? 'Online' : 'Offline'}
@@ -107,11 +108,10 @@ const ChatArea = () => {
                 className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${
-                    isMine
+                  className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${isMine
                       ? 'bg-blue-500 text-white rounded-br-sm'
                       : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
-                  }`}
+                    }`}
                 >
                   <p>{message.text}</p>
                   <p className={`text-xs mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>

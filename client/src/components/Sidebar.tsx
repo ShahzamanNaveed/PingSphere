@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
+import TypingDots from './TypingDots'
 
 const Sidebar = () => {
   const { user, logout } = useAuthStore()
@@ -100,9 +101,8 @@ const Sidebar = () => {
               <div
                 key={conversation._id}
                 onClick={() => setSelectedConversation(conversation)}
-                className={`flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  isSelected ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                }`}
+                className={`flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                  }`}
               >
                 <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                   {other?.username.charAt(0).toUpperCase()}
@@ -111,7 +111,7 @@ const Sidebar = () => {
                   <p className="font-medium text-gray-800 text-sm">{other?.username}</p>
                   <p className="text-xs truncate">
                     {isTyping === conversation._id ? (
-                      <span className="text-blue-400 italic">typing...</span>
+                      <span className="flex items-center gap-1 text-blue-400">typing <TypingDots /></span>
                     ) : conversation.lastMessage ? (
                       <span className="text-gray-400">{conversation.lastMessage.text}</span>
                     ) : (
