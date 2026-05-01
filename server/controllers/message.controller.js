@@ -66,3 +66,31 @@ export const createMessage = async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 }
+
+export const markMessagesSeen = async (req, res) => {
+  const { conversationId } = req.params
+  try {
+    const conversation = await Conversation.findById(conversationId)
+    if (!conversation) {
+      return res.status(404).json({ message: 'Conversation not found' })
+    }
+    const isParticipant = conversation.participants.some(
+      (p) => p.toString() === req.user._id.toString()
+    )
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'Unauthorized' })
+    }
+    await Message.updateMany(
+      {
+        conversationId,
+        senderId: { $ne: req.user._id },
+        seen: false,
+      },
+      { seen: true }
+    )
+    res.status(200).json({ message: 'Messages marked as seen' })
+  } catch (error) {
+    console.error('markMessagesSeen error:', error.message)
+    res.status(500).json({ message: 'Server error' })
+  }
+}

@@ -38,6 +38,7 @@ interface ChatStore {
   isConversationsLoading: boolean
   isUsersLoading: boolean
   hasMoreMessages: boolean
+  unreadCounts: Record<string, number>
   setSelectedConversation: (conversation: Conversation | null) => void
   getConversations: () => Promise<void>
   getUsers: () => Promise<void>
@@ -50,6 +51,7 @@ interface ChatStore {
   setOnlineUsers: (users: string[]) => void
   emitTyping: (conversationId: string) => void
   emitStopTyping: (conversationId: string) => void
+  markSeen: (conversationId: string) => Promise<void>
 }
 
 const useChatStore = create<ChatStore>((set, get) => ({
@@ -63,6 +65,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
   isConversationsLoading: false,
   isUsersLoading: false,
   hasMoreMessages: false,
+  unreadCounts: {},
 
   setSelectedConversation: (conversation) => {
     set({ selectedConversation: conversation })
@@ -158,6 +161,17 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
+  markSeen: async (conversationId) => {
+    try {
+      await axiosInstance.put(`/messages/${conversationId}/seen`)
+      set((state) => ({
+        unreadCounts: { ...state.unreadCounts, [conversationId]: 0 },
+      }))
+    } catch (error) {
+      console.error('markSeen error:', error)
+    }
+  },
+
   sendMessage: (conversationId, text) => {
     const socket = getSocket()
     if (!socket) {
@@ -194,6 +208,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
       set((state) => {
         const currentUser = useAuthStore.getState().user
         const isMyMessage = message.senderId === currentUser?._id
+        let unreadCounts = { ...state.unreadCounts }
 
         let updatedMessages
         if (isMyMessage) {
@@ -201,10 +216,18 @@ const useChatStore = create<ChatStore>((set, get) => ({
           const withoutPending = state.messages.filter((m) => !m.pending)
           updatedMessages = [...withoutPending, { ...message, pending: false }]
         } else {
-          // message from other person, just append if conversation is open
+          // message from other person, append if conversation is open
           updatedMessages = state.selectedConversation?._id === message.conversationId
             ? [...state.messages, message]
             : state.messages
+
+          // increment unread count if conversation is not currently open
+          if (state.selectedConversation?._id !== message.conversationId) {
+            unreadCounts = {
+              ...state.unreadCounts,
+              [message.conversationId]: (state.unreadCounts[message.conversationId] || 0) + 1,
+            }
+          }
         }
 
         const updatedConversations = state.conversations
@@ -218,6 +241,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
         return {
           messages: updatedMessages,
           conversations: updatedConversations,
+          unreadCounts,
         }
       })
     })

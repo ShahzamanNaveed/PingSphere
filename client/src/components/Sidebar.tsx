@@ -28,6 +28,7 @@ const Sidebar = () => {
     isConversationsLoading,
     isTyping,
     onlineUsers,
+    unreadCounts,
   } = useChatStore()
 
   const navigate = useNavigate()
@@ -121,6 +122,7 @@ const Sidebar = () => {
             const other = getOtherUser(conversation)
             const isSelected = selectedConversation?._id === conversation._id
             const isOtherOnline = onlineUsers.includes(other?._id || '')
+            const unreadCount = unreadCounts[conversation._id] || 0
 
             return (
               <div
@@ -156,6 +158,14 @@ const Sidebar = () => {
                     )}
                   </p>
                 </div>
+
+                {unreadCount > 0 && (
+                  <div className="flex-shrink-0 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  </div>
+                )}
               </div>
             )
           })
@@ -219,4 +229,4 @@ const Sidebar = () => {
   )
 }
 
-export default Sidebar 
+export default Sidebar

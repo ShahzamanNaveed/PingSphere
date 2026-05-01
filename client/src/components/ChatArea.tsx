@@ -47,6 +47,7 @@ const ChatArea = () => {
     setSelectedConversation,
     hasMoreMessages,
     loadMoreMessages,
+    markSeen,
   } = useChatStore()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -62,6 +63,7 @@ const ChatArea = () => {
   useEffect(() => {
     if (!selectedConversation) return
     getMessages(selectedConversation._id)
+    markSeen(selectedConversation._id)
   }, [selectedConversation])
 
   useEffect(() => {
