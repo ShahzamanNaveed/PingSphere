@@ -16,6 +16,7 @@ const Sidebar = () => {
     createConversation,
     isUsersLoading,
     isTyping,
+    onlineUsers,
   } = useChatStore()
 
   const navigate = useNavigate()
@@ -96,17 +97,26 @@ const Sidebar = () => {
           filtered.map((conversation) => {
             const other = getOtherUser(conversation)
             const isSelected = selectedConversation?._id === conversation._id
+            const isOtherOnline = onlineUsers.includes(other?._id || '')
 
             return (
               <div
                 key={conversation._id}
                 onClick={() => setSelectedConversation(conversation)}
-                className={`flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                  }`}
+                className={`flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                  isSelected ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                }`}
               >
-                <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
-                  {other?.username.charAt(0).toUpperCase()}
+                {/* Avatar with online dot */}
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm">
+                    {other?.username.charAt(0).toUpperCase()}
+                  </div>
+                  {isOtherOnline && (
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />
+                  )}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-gray-800 text-sm">{other?.username}</p>
                   <p className="text-xs truncate">
@@ -130,7 +140,6 @@ const Sidebar = () => {
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-xl w-80 max-h-96 flex flex-col">
 
-            {/* Modal header */}
             <div className="p-4 border-b border-gray-200 flex items-center justify-between">
               <h2 className="font-semibold text-gray-800">New Conversation</h2>
               <button
@@ -141,7 +150,6 @@ const Sidebar = () => {
               </button>
             </div>
 
-            {/* User list */}
             <div className="flex-1 overflow-y-auto">
               {isUsersLoading ? (
                 <p className="text-center text-gray-400 text-sm mt-8">Loading users...</p>
@@ -154,8 +162,13 @@ const Sidebar = () => {
                     onClick={() => handleSelectUser(u._id)}
                     className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                   >
-                    <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                      {u.username.charAt(0).toUpperCase()}
+                    <div className="relative">
+                      <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                        {u.username.charAt(0).toUpperCase()}
+                      </div>
+                      {onlineUsers.includes(u._id) && (
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />
+                      )}
                     </div>
                     <span className="text-sm font-medium text-gray-800">{u.username}</span>
                   </div>

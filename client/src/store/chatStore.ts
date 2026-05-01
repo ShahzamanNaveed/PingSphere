@@ -175,7 +175,27 @@ const useChatStore = create<ChatStore>((set, get) => ({
     socket.off('stopTyping')
 
     socket.on('newMessage', (message: Message) => {
-      set((state) => ({ messages: [...state.messages, message] }))
+      set((state) => {
+        // update messages if this conversation is open
+        const updatedMessages =
+          state.selectedConversation?._id === message.conversationId
+            ? [...state.messages, message]
+            : state.messages
+
+        // update lastMessage and re-sort conversations to top
+        const updatedConversations = state.conversations
+          .map((c) =>
+            c._id === message.conversationId
+              ? { ...c, lastMessage: message, updatedAt: message.createdAt }
+              : c
+          )
+          .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+
+        return {
+          messages: updatedMessages,
+          conversations: updatedConversations,
+        }
+      })
     })
 
     socket.on('onlineUsers', (users: string[]) => {
