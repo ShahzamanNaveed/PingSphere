@@ -65,10 +65,14 @@ const Sidebar = () => {
         <div className="flex items-center gap-3">
           <div
             onClick={() => navigate('/profile')}
-            className="w-9 h-9 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:opacity-80 transition-opacity"
+            className="w-9 h-9 rounded-full overflow-hidden bg-blue-500 flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:opacity-80 transition-opacity"
             title="View profile"
           >
-            {user?.username.charAt(0).toUpperCase()}
+            {user?.profilePic ? (
+              <img src={user.profilePic} alt="avatar" className="w-full h-full object-cover" />
+            ) : (
+              user?.username.charAt(0).toUpperCase()
+            )}
           </div>
           <span className="font-semibold text-gray-800">{user?.username}</span>
         </div>
@@ -128,8 +132,12 @@ const Sidebar = () => {
               >
                 {/* Avatar with online dot */}
                 <div className="relative flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm">
-                    {other?.username.charAt(0).toUpperCase()}
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-green-500 flex items-center justify-center text-white font-bold text-sm">
+                    {other?.profilePic ? (
+                      <img src={other.profilePic} alt="avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      other?.username.charAt(0).toUpperCase()
+                    )}
                   </div>
                   {isOtherOnline && (
                     <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />
@@ -179,15 +187,19 @@ const Sidebar = () => {
               ) : users.length === 0 ? (
                 <p className="text-center text-gray-400 text-sm mt-8">No users found</p>
               ) : (
-                users.map((u) => (
+                users.map((u: any) => (
                   <div
                     key={u._id}
                     onClick={() => handleSelectUser(u._id)}
                     className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
                   >
                     <div className="relative">
-                      <div className="w-9 h-9 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-sm">
-                        {u.username.charAt(0).toUpperCase()}
+                      <div className="w-9 h-9 rounded-full overflow-hidden bg-purple-500 flex items-center justify-center text-white font-bold text-sm">
+                        {u.profilePic ? (
+                          <img src={u.profilePic} alt="avatar" className="w-full h-full object-cover" />
+                        ) : (
+                          u.username.charAt(0).toUpperCase()
+                        )}
                       </div>
                       {onlineUsers.includes(u._id) && (
                         <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />

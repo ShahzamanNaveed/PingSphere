@@ -5,7 +5,7 @@ import axiosInstance from '../lib/axios'
 import toast from 'react-hot-toast'
 
 const ProfilePage = () => {
-  const { user, logout, checkAuth } = useAuthStore()
+  const { user, logout, checkAuth, updateAvatar } = useAuthStore()
   const navigate = useNavigate()
 
   const [username, setUsername] = useState(user?.username || '')
@@ -79,10 +79,29 @@ const ProfilePage = () => {
 
         {/* Avatar */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-20 h-20 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-3xl mb-3">
-            {user?.username.charAt(0).toUpperCase()}
-          </div>
-          <p className="text-gray-500 text-sm">{user?.email}</p>
+          <label className="cursor-pointer group relative">
+            <div className="w-20 h-20 rounded-full overflow-hidden bg-blue-500 flex items-center justify-center text-white font-bold text-3xl">
+              {user?.profilePic ? (
+                <img src={user.profilePic} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                user?.username.charAt(0).toUpperCase()
+              )}
+            </div>
+            <div className="absolute inset-0 rounded-full bg-black bg-opacity-40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-white text-xs font-medium">Change</span>
+            </div>
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) updateAvatar(file)
+              }}
+            />
+          </label>
+          <p className="text-gray-400 text-xs mt-2">Click avatar to change</p>
+          <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
         </div>
 
         {/* Username */}

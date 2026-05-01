@@ -102,8 +102,12 @@ const ChatArea = () => {
         >
           ←
         </button>
-        <div className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-sm">
-          {otherUser?.username.charAt(0).toUpperCase()}
+        <div className="w-9 h-9 rounded-full overflow-hidden bg-green-500 flex items-center justify-center text-white font-bold text-sm">
+          {otherUser?.profilePic ? (
+            <img src={otherUser.profilePic} alt="avatar" className="w-full h-full object-cover" />
+          ) : (
+            otherUser?.username.charAt(0).toUpperCase()
+          )}
         </div>
         <div>
           <p className="font-semibold text-gray-800 text-sm">{otherUser?.username}</p>

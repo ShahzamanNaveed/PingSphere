@@ -1,4 +1,6 @@
 import User from '../models/User.js'
+import cloudinary from '../config/cloudinary.js'
+import multer from 'multer'
 
 export const getUsers = async (req, res) => {
   try {
@@ -56,3 +58,44 @@ export const changePassword = async (req, res) => {
     res.status(500).json({ message: 'Server error' })
   }
 }
+
+
+export const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' })
+    }
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: 'pingsphere/avatars' },
+        (error, result) => {
+          if (error) reject(error)
+          else resolve(result)
+        }
+      )
+      stream.end(req.file.buffer)
+    })
+
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { profilePic: result.secure_url },
+      { new: true }
+    ).select('-password')
+
+    res.status(200).json(user)
+  } catch (error) {
+    console.error('uploadAvatar error:', error.message)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+export const multerUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = ['image/jpeg', 'image/png', 'image/webp']
+    if (allowed.includes(file.mimetype)) cb(null, true)
+    else cb(new Error('Only JPEG, PNG and WebP images are allowed'))
+  },
+})

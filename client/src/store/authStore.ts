@@ -19,6 +19,7 @@ interface AuthStore {
   register: (username: string, email: string, password: string) => Promise<void>
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
+  updateAvatar: (file: File) => Promise<void>
 }
 
 const useAuthStore = create<AuthStore>((set) => ({
@@ -77,6 +78,18 @@ const useAuthStore = create<AuthStore>((set) => ({
       toast.success('Logged out')
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Something went wrong')
+    }
+  },
+
+  updateAvatar: async (file) => {
+    try {
+      const formData = new FormData()
+      formData.append('avatar', file)
+      const res = await axiosInstance.post('/users/profile/avatar', formData)
+      set({ user: res.data })
+      toast.success('Avatar updated!')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Could not upload avatar')
     }
   },
 }))
