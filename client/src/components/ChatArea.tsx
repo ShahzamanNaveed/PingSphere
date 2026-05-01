@@ -127,13 +127,13 @@ const ChatArea = () => {
                 )}
                 <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
                   <div
-                    className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${
+                    className={`max-w-xs w-fit px-4 py-2 rounded-2xl text-sm break-words ${
                       isMine
                         ? 'bg-blue-500 text-white rounded-br-sm'
                         : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
                     }`}
                   >
-                    <p>{message.text}</p>
+                    <p className="whitespace-pre-wrap break-words">{message.text}</p>
                     <p className={`text-xs mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
                       {new Date(message.createdAt).toLocaleTimeString([], {
                         hour: '2-digit',
