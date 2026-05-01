@@ -3,6 +3,17 @@ import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
 import TypingDots from './TypingDots'
 
+const getDateLabel = (dateStr: string): string => {
+  const date = new Date(dateStr)
+  const today = new Date()
+  const yesterday = new Date()
+  yesterday.setDate(today.getDate() - 1)
+
+  if (date.toDateString() === today.toDateString()) return 'Today'
+  if (date.toDateString() === yesterday.toDateString()) return 'Yesterday'
+  return date.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
+}
+
 const ChatArea = () => {
   const { user } = useAuthStore()
   const {
@@ -99,27 +110,37 @@ const ChatArea = () => {
         {messages.length === 0 ? (
           <p className="text-center text-gray-400 text-sm mt-8">No messages yet. Say hello!</p>
         ) : (
-          messages.map((message) => {
+          messages.map((message, index) => {
             const isMine = message.senderId === user?._id
+            const showDivider =
+              index === 0 ||
+              getDateLabel(message.createdAt) !== getDateLabel(messages[index - 1].createdAt)
 
             return (
-              <div
-                key={message._id}
-                className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${isMine
-                      ? 'bg-blue-500 text-white rounded-br-sm'
-                      : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+              <div key={message._id}>
+                {showDivider && (
+                  <div className="flex items-center gap-2 my-2">
+                    <div className="flex-1 h-px bg-gray-200" />
+                    <span className="text-xs text-gray-400 px-2">{getDateLabel(message.createdAt)}</span>
+                    <div className="flex-1 h-px bg-gray-200" />
+                  </div>
+                )}
+                <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+                  <div
+                    className={`max-w-xs px-4 py-2 rounded-2xl text-sm ${
+                      isMine
+                        ? 'bg-blue-500 text-white rounded-br-sm'
+                        : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
                     }`}
-                >
-                  <p>{message.text}</p>
-                  <p className={`text-xs mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
-                    {new Date(message.createdAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </p>
+                  >
+                    <p>{message.text}</p>
+                    <p className={`text-xs mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
+                      {new Date(message.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </p>
+                  </div>
                 </div>
               </div>
             )
@@ -137,19 +158,25 @@ const ChatArea = () => {
 
 const MessageInput = ({ onSend, conversationId }: { onSend: (text: string) => void, conversationId: string }) => {
   const { emitTyping, emitStopTyping } = useChatStore()
-  const textRef = useRef<HTMLInputElement>(null)
+  const textRef = useRef<HTMLTextAreaElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  const handleInput = () => {
+    const textarea = textRef.current
+    if (!textarea) return
+    textarea.style.height = 'auto'
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 96)}px`
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
       handleSubmit()
       return
     }
 
     emitTyping(conversationId)
-
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-
     typingTimeoutRef.current = setTimeout(() => {
       emitStopTyping(conversationId)
     }, 2000)
@@ -159,23 +186,27 @@ const MessageInput = ({ onSend, conversationId }: { onSend: (text: string) => vo
     const text = textRef.current?.value.trim()
     if (!text) return
     onSend(text)
-    if (textRef.current) textRef.current.value = ''
+    if (textRef.current) {
+      textRef.current.value = ''
+      textRef.current.style.height = 'auto'
+    }
     emitStopTyping(conversationId)
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
   }
 
   return (
-    <div className="px-4 py-3 bg-white border-t border-gray-200 flex items-center gap-3">
-      <input
+    <div className="px-4 py-3 bg-white border-t border-gray-200 flex items-end gap-3">
+      <textarea
         ref={textRef}
-        type="text"
         placeholder="Type a message..."
+        rows={1}
+        onInput={handleInput}
         onKeyDown={handleKeyDown}
-        className="flex-1 px-4 py-2 bg-gray-100 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-300"
+        className="flex-1 px-4 py-2 bg-gray-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-300 resize-none overflow-y-auto leading-5"
       />
       <button
         onClick={handleSubmit}
-        className="w-9 h-9 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors"
+        className="w-9 h-9 bg-blue-500 hover:bg-blue-600 text-white rounded-full flex items-center justify-center transition-colors flex-shrink-0"
       >
         ➤
       </button>
