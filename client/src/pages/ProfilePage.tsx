@@ -9,15 +9,20 @@ const ProfilePage = () => {
   const navigate = useNavigate()
 
   const [username, setUsername] = useState(user?.username || '')
-  const [isLoading, setIsLoading] = useState(false)
+  const [isProfileLoading, setIsProfileLoading] = useState(false)
+
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [isPasswordLoading, setIsPasswordLoading] = useState(false)
 
   const handleUpdate = async () => {
     if (username.trim().length < 3) {
       toast.error('Username must be at least 3 characters')
       return
     }
-
-    setIsLoading(true)
+    setIsProfileLoading(true)
     try {
       await axiosInstance.put('/users/profile', { username: username.trim() })
       await checkAuth()
@@ -25,7 +30,35 @@ const ProfilePage = () => {
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Something went wrong')
     } finally {
-      setIsLoading(false)
+      setIsProfileLoading(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      toast.error('All fields are required')
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error('New passwords do not match')
+      return
+    }
+    if (newPassword.length < 6) {
+      toast.error('New password must be at least 6 characters')
+      return
+    }
+    setIsPasswordLoading(true)
+    try {
+      await axiosInstance.put('/users/password', { currentPassword, newPassword })
+      toast.success('Password updated!')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setShowPasswordForm(false)
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Something went wrong')
+    } finally {
+      setIsPasswordLoading(false)
     }
   }
 
@@ -37,8 +70,6 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-md w-full max-w-md p-8">
-
-        {/* Back button */}
         <button
           onClick={() => navigate('/')}
           className="text-gray-400 hover:text-blue-500 transition-colors text-sm mb-6 flex items-center gap-1"
@@ -54,11 +85,9 @@ const ProfilePage = () => {
           <p className="text-gray-500 text-sm">{user?.email}</p>
         </div>
 
-        {/* Username field */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Username
-          </label>
+        {/* Username */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
           <input
             type="text"
             value={username}
@@ -66,24 +95,72 @@ const ProfilePage = () => {
             className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
           />
         </div>
-
-        {/* Update button */}
         <button
           onClick={handleUpdate}
-          disabled={isLoading || username.trim() === user?.username}
-          className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-colors mb-3"
+          disabled={isProfileLoading || username.trim() === user?.username}
+          className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-colors mb-6"
         >
-          {isLoading ? 'Saving...' : 'Save Changes'}
+          {isProfileLoading ? 'Saving...' : 'Save Changes'}
         </button>
 
-        {/* Logout button */}
+        {/* Change Password Toggle */}
+        <button
+          onClick={() => setShowPasswordForm(!showPasswordForm)}
+          className="w-full text-sm text-blue-500 hover:text-blue-600 font-medium mb-3 text-left transition-colors"
+        >
+          {showPasswordForm ? '▲ Hide password form' : '▼ Change password'}
+        </button>
+
+        {/* Change Password Form */}
+        {showPasswordForm && (
+          <div className="border border-gray-100 rounded-xl p-4 mb-4 flex flex-col gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+                placeholder="Enter current password"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+                placeholder="At least 6 characters"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+                placeholder="Repeat new password"
+              />
+            </div>
+            <button
+              onClick={handleChangePassword}
+              disabled={isPasswordLoading}
+              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-colors"
+            >
+              {isPasswordLoading ? 'Updating...' : 'Update Password'}
+            </button>
+          </div>
+        )}
+
+        {/* Logout */}
         <button
           onClick={handleLogout}
           className="w-full bg-red-50 hover:bg-red-100 text-red-500 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           Logout
         </button>
-
       </div>
     </div>
   )
