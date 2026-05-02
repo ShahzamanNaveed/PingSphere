@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
 import TypingDots from './TypingDots'
@@ -48,10 +48,15 @@ const ChatArea = () => {
     hasMoreMessages,
     loadMoreMessages,
     markSeen,
+    unsendMessage,
+    editMessage,
   } = useChatStore()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+  const editInputRef = useRef<HTMLTextAreaElement>(null)
 
   const getOtherUser = () => {
     return selectedConversation?.participants.find((p: any) => p._id !== user?._id)
@@ -70,6 +75,16 @@ const ChatArea = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  useEffect(() => {
+    if (editingId && editInputRef.current) {
+      editInputRef.current.focus()
+      editInputRef.current.setSelectionRange(
+        editInputRef.current.value.length,
+        editInputRef.current.value.length
+      )
+    }
+  }, [editingId])
+
   const handleScroll = () => {
     if (!messagesContainerRef.current) return
     if (messagesContainerRef.current.scrollTop === 0 && hasMoreMessages) {
@@ -80,6 +95,23 @@ const ChatArea = () => {
   const handleSend = (text: string) => {
     if (!selectedConversation) return
     sendMessage(selectedConversation._id, text)
+  }
+
+  const handleStartEdit = (messageId: string, currentText: string) => {
+    setEditingId(messageId)
+    setEditText(currentText)
+  }
+
+  const handleConfirmEdit = async () => {
+    if (!editingId || !editText.trim()) return
+    await editMessage(editingId, editText.trim())
+    setEditingId(null)
+    setEditText('')
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditText('')
   }
 
   if (!selectedConversation) {
@@ -146,6 +178,7 @@ const ChatArea = () => {
                 const showDivider =
                   index === 0 ||
                   getDateLabel(message.createdAt) !== getDateLabel(messages[index - 1].createdAt)
+                const isEditing = editingId === message._id
 
                 return (
                   <div key={message._id}>
@@ -156,7 +189,31 @@ const ChatArea = () => {
                         <div className="flex-1 h-px bg-gray-200" />
                       </div>
                     )}
-                    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'}`}>
+
+                    {/* Message row */}
+                    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`}>
+
+                      {/* Hover action buttons — only on my messages, not pending, not editing */}
+                      {isMine && !message.pending && !isEditing && (
+                        <div className="flex items-center gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity self-center">
+                          <button
+                            onClick={() => handleStartEdit(message._id, message.text)}
+                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => unsendMessage(message._id)}
+                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors text-xs"
+                            title="Unsend"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Message bubble */}
                       <div
                         className={`max-w-xs w-fit px-4 py-2 rounded-2xl text-sm break-words ${
                           isMine
@@ -164,13 +221,63 @@ const ChatArea = () => {
                             : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
                         }`}
                       >
-                        <p className="whitespace-pre-wrap break-words">{message.text}</p>
-                        <p className={`text-xs mt-1 ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
-                          {new Date(message.createdAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </p>
+                        {/* Inline edit mode */}
+                        {isEditing ? (
+                          <div className="flex flex-col gap-2">
+                            <textarea
+                              ref={editInputRef}
+                              value={editText}
+                              onChange={(e) => setEditText(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault()
+                                  handleConfirmEdit()
+                                }
+                                if (e.key === 'Escape') {
+                                  handleCancelEdit()
+                                }
+                              }}
+                              className="bg-blue-400 text-white placeholder-blue-200 rounded-lg px-2 py-1 text-sm outline-none resize-none w-full min-w-[160px]"
+                              rows={2}
+                            />
+                            <div className="flex gap-2 justify-end">
+                              <button
+                                onClick={handleCancelEdit}
+                                className="text-xs text-blue-200 hover:text-white transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                onClick={handleConfirmEdit}
+                                className="text-xs bg-white text-blue-500 px-2 py-0.5 rounded-full hover:bg-blue-50 transition-colors font-medium"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                            {message.edited && (
+                              <p className={`text-xs italic mt-0.5 ${isMine ? 'text-blue-200' : 'text-gray-400'}`}>
+                                edited
+                              </p>
+                            )}
+                            <div className="flex items-center justify-end gap-1 mt-1">
+                              <p className={`text-xs ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
+                                {new Date(message.createdAt).toLocaleTimeString([], {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })}
+                              </p>
+                              {isMine && !message.pending && (
+                                <span className={`text-xs font-bold ${message.seen ? 'text-blue-200' : 'text-blue-100 opacity-60'}`}>
+                                  {message.seen ? '✓✓' : '✓'}
+                                </span>
+                              )}
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

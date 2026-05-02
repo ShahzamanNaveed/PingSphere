@@ -16,6 +16,7 @@ interface Message {
   senderId: string
   text: string
   seen: boolean
+  edited?: boolean
   createdAt: string
   pending?: boolean
 }
@@ -52,6 +53,8 @@ interface ChatStore {
   emitTyping: (conversationId: string) => void
   emitStopTyping: (conversationId: string) => void
   markSeen: (conversationId: string) => Promise<void>
+  unsendMessage: (messageId: string) => Promise<void>
+  editMessage: (messageId: string, text: string) => Promise<void>
 }
 
 const useChatStore = create<ChatStore>((set, get) => ({
@@ -172,6 +175,32 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
+  unsendMessage: async (messageId) => {
+    try {
+      // remove locally immediately (optimistic)
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== messageId),
+      }))
+      await axiosInstance.delete(`/messages/${messageId}`)
+    } catch (error) {
+      toast.error('Could not unsend message')
+    }
+  },
+
+  editMessage: async (messageId, text) => {
+    try {
+      // update locally immediately (optimistic)
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m._id === messageId ? { ...m, text, edited: true } : m
+        ),
+      }))
+      await axiosInstance.put(`/messages/${messageId}`, { text })
+    } catch (error) {
+      toast.error('Could not edit message')
+    }
+  },
+
   sendMessage: (conversationId, text) => {
     const socket = getSocket()
     if (!socket) {
@@ -203,6 +232,9 @@ const useChatStore = create<ChatStore>((set, get) => ({
     socket.off('onlineUsers')
     socket.off('typing')
     socket.off('stopTyping')
+    socket.off('messagesSeen')
+    socket.off('messageUnsent')
+    socket.off('messageEdited')
 
     socket.on('newMessage', (message: Message) => {
       set((state) => {
@@ -212,21 +244,20 @@ const useChatStore = create<ChatStore>((set, get) => ({
 
         let updatedMessages
         if (isMyMessage) {
-          // remove pending temp message and replace with confirmed one
           const withoutPending = state.messages.filter((m) => !m.pending)
           updatedMessages = [...withoutPending, { ...message, pending: false }]
         } else {
-          // message from other person, append if conversation is open
           updatedMessages = state.selectedConversation?._id === message.conversationId
             ? [...state.messages, message]
             : state.messages
 
-          // increment unread count if conversation is not currently open
           if (state.selectedConversation?._id !== message.conversationId) {
             unreadCounts = {
               ...state.unreadCounts,
               [message.conversationId]: (state.unreadCounts[message.conversationId] || 0) + 1,
             }
+          } else {
+            get().markSeen(message.conversationId)
           }
         }
 
@@ -257,6 +288,28 @@ const useChatStore = create<ChatStore>((set, get) => ({
     socket.on('stopTyping', () => {
       set({ isTyping: null })
     })
+
+    socket.on('messagesSeen', ({ conversationId }: { conversationId: string }) => {
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m.conversationId === conversationId ? { ...m, seen: true } : m
+        ),
+      }))
+    })
+
+    socket.on('messageUnsent', ({ messageId }: { messageId: string }) => {
+      set((state) => ({
+        messages: state.messages.filter((m) => m._id !== messageId),
+      }))
+    })
+
+    socket.on('messageEdited', ({ messageId, text }: { messageId: string, text: string }) => {
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m._id === messageId ? { ...m, text, edited: true } : m
+        ),
+      }))
+    })
   },
 
   unsubscribeFromMessages: () => {
@@ -266,6 +319,9 @@ const useChatStore = create<ChatStore>((set, get) => ({
     socket.off('onlineUsers')
     socket.off('typing')
     socket.off('stopTyping')
+    socket.off('messagesSeen')
+    socket.off('messageUnsent')
+    socket.off('messageEdited')
   },
 }))
 

@@ -8,14 +8,18 @@ const presenceMap = new Map()
 
 export const getSocketId = (userId) => presenceMap.get(userId)
 
+let io
+
+export const getIO = () => io
+
 export const initSocket = (server) => {
-  const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  },
-  transports: process.env.NODE_ENV === 'production' ? ['websocket'] : ['polling', 'websocket'],
-})
+  io = new Server(server, {
+    cors: {
+      origin: process.env.CLIENT_URL,
+      credentials: true,
+    },
+    transports: process.env.NODE_ENV === 'production' ? ['websocket'] : ['polling', 'websocket'],
+  })
 
   io.use((socket, next) => {
     try {

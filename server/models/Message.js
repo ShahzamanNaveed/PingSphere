@@ -21,11 +21,14 @@ const messageSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    edited: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 )
 
-// index on conversationId + createdAt for fast paginated message fetching
 messageSchema.index({ conversationId: 1, createdAt: -1 })
 
 const Message = mongoose.model('Message', messageSchema)
