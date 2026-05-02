@@ -44,12 +44,13 @@ export const initSocket = (server) => {
     presenceMap.set(socket.userId, socket.id)
     io.emit('onlineUsers', Array.from(presenceMap.keys()))
 
-    socket.on('sendMessage', async ({ conversationId, text }) => {
+    socket.on('sendMessage', async ({ conversationId, text, replyTo }) => {
       try {
         const message = await Message.create({
           conversationId,
           senderId: socket.userId,
           text,
+          replyTo: replyTo || null,
         })
 
         await Conversation.findByIdAndUpdate(conversationId, {
@@ -62,12 +63,14 @@ export const initSocket = (server) => {
           (id) => id.toString() !== socket.userId
         )
 
+        const populatedMessage = await Message.findById(message._id).populate('replyTo', 'text senderId')
+
         const recipientSocketId = presenceMap.get(recipientId?.toString())
         if (recipientSocketId) {
-          io.to(recipientSocketId).emit('newMessage', message)
+          io.to(recipientSocketId).emit('newMessage', populatedMessage)
         }
 
-        socket.emit('newMessage', message)
+        socket.emit('newMessage', populatedMessage)
       } catch (error) {
         console.error('sendMessage error:', error.message)
       }

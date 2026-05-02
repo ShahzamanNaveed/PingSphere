@@ -29,6 +29,7 @@ export const getMessages = async (req, res) => {
     const messages = await Message.find(query)
       .sort({ createdAt: -1 })
       .limit(LIMIT)
+      .populate('replyTo', 'text senderId')
 
     res.status(200).json(messages.reverse())
   } catch (error) {
@@ -174,6 +175,101 @@ export const editMessage = async (req, res) => {
     res.status(200).json(message)
   } catch (error) {
     console.error('editMessage error:', error.message)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+
+export const reactToMessage = async (req, res) => {
+  const { messageId } = req.params
+  const { emoji } = req.body
+  try {
+    if (!emoji) {
+      return res.status(400).json({ message: 'Emoji is required' })
+    }
+
+    const message = await Message.findById(messageId)
+    if (!message) {
+      return res.status(404).json({ message: 'Message not found' })
+    }
+
+    const conversation = await Conversation.findById(message.conversationId)
+    const isParticipant = conversation.participants.some(
+      (p) => p.toString() === req.user._id.toString()
+    )
+    if (!isParticipant) {
+      return res.status(403).json({ message: 'Unauthorized' })
+    }
+
+    const existingIndex = message.reactions.findIndex(
+      (r) => r.userId.toString() === req.user._id.toString() && r.emoji === emoji
+    )
+
+    if (existingIndex !== -1) {
+      // same emoji from same user — toggle it off
+      message.reactions.splice(existingIndex, 1)
+    } else {
+      // remove any other reaction from this user first (one reaction per user)
+      message.reactions = message.reactions.filter(
+        (r) => r.userId.toString() !== req.user._id.toString()
+      )
+      message.reactions.push({ emoji, userId: req.user._id })
+    }
+
+    await message.save()
+
+    const recipientId = conversation.participants.find(
+      (p) => p.toString() !== req.user._id.toString()
+    )
+    const recipientSocketId = getSocketId(recipientId?.toString())
+    const payload = {
+      messageId,
+      reactions: message.reactions,
+      conversationId: message.conversationId.toString(),
+    }
+    if (recipientSocketId) {
+      getIO().to(recipientSocketId).emit('messageReaction', payload)
+    }
+    // also emit to sender so both sides update
+    const senderSocketId = getSocketId(req.user._id.toString())
+    if (senderSocketId) {
+      getIO().to(senderSocketId).emit('messageReaction', payload)
+    }
+
+    res.status(200).json(message)
+  } catch (error) {
+    console.error('reactToMessage error:', error.message)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
+
+export const searchMessages = async (req, res) => {
+  const { conversationId } = req.params
+  const { q } = req.query
+  try {
+    if (!q || q.trim().length === 0) {
+      return res.status(400).json({ message: 'Search query is required' })
+    }
+
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: { $in: [req.user._id] },
+    })
+    if (!conversation) {
+      return res.status(403).json({ message: 'Access denied' })
+    }
+
+    const messages = await Message.find({
+      conversationId,
+      text: { $regex: q.trim(), $options: 'i' },
+    })
+      .sort({ createdAt: -1 })
+      .limit(20)
+
+    res.status(200).json(messages.reverse())
+  } catch (error) {
+    console.error('searchMessages error:', error.message)
     res.status(500).json({ message: 'Server error' })
   }
 }

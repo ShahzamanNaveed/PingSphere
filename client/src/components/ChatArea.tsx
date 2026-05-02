@@ -3,6 +3,8 @@ import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
 import TypingDots from './TypingDots'
 
+const EMOJI_LIST = ['❤️', '😂', '😮', '😢', '😡', '👍']
+
 const getDateLabel = (dateStr: string): string => {
   const date = new Date(dateStr)
   const today = new Date()
@@ -50,12 +52,25 @@ const ChatArea = () => {
     markSeen,
     unsendMessage,
     editMessage,
+    replyingTo,
+    setReplyingTo,
+    reactToMessage,
+    searchMessages,
+    clearSearch,
+    searchResults,
+    isSearching,
   } = useChatStore()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const editInputRef = useRef<HTMLTextAreaElement>(null)
 
   const getOtherUser = () => {
@@ -85,6 +100,35 @@ const ChatArea = () => {
     }
   }, [editingId])
 
+  useEffect(() => {
+    if (showSearch && searchInputRef.current) {
+      searchInputRef.current.focus()
+    }
+  }, [showSearch])
+
+  useEffect(() => {
+    const handleClickOutside = () => setEmojiPickerFor(null)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
+
+  const handleCloseSearch = () => {
+    setShowSearch(false)
+    setSearchQuery('')
+    clearSearch()
+  }
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const q = e.target.value
+    setSearchQuery(q)
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    searchTimeoutRef.current = setTimeout(() => {
+      if (selectedConversation) {
+        searchMessages(selectedConversation._id, q)
+      }
+    }, 400)
+  }
+
   const handleScroll = () => {
     if (!messagesContainerRef.current) return
     if (messagesContainerRef.current.scrollTop === 0 && hasMoreMessages) {
@@ -112,6 +156,231 @@ const ChatArea = () => {
   const handleCancelEdit = () => {
     setEditingId(null)
     setEditText('')
+  }
+
+  const handleReact = async (e: React.MouseEvent, messageId: string, emoji: string) => {
+    e.stopPropagation()
+    setEmojiPickerFor(null)
+    await reactToMessage(messageId, emoji)
+  }
+
+  const renderMessage = (message: any, index: number, list: any[], isSearchResult = false) => {
+    const isMine = message.senderId === user?._id || message.pending === true
+    const showDivider = !isSearchResult && (
+      index === 0 ||
+      getDateLabel(message.createdAt) !== getDateLabel(list[index - 1].createdAt)
+    )
+    const isEditing = editingId === message._id
+    const hasReactions = message.reactions && message.reactions.length > 0
+    const myReaction = message.reactions?.find((r: any) => r.userId === user?._id)
+
+    return (
+      <div key={message._id}>
+        {showDivider && (
+          <div className="flex items-center gap-2 my-2">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs text-gray-400 px-2">{getDateLabel(message.createdAt)}</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+        )}
+
+        {/* Search result date label */}
+        {isSearchResult && (
+          <p className="text-xs text-gray-400 text-center mb-1">
+            {getDateLabel(message.createdAt)} · {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </p>
+        )}
+
+        <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group relative`}>
+
+          {/* Hover action buttons for my messages */}
+          {isMine && !message.pending && !isEditing && !isSearchResult && (
+            <div className="flex items-center gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity self-center">
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEmojiPickerFor(emojiPickerFor === message._id ? null : message._id)
+                  }}
+                  className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-yellow-500 transition-colors text-xs"
+                  title="React"
+                >
+                  😊
+                </button>
+                {emojiPickerFor === message._id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute bottom-9 right-0 bg-white rounded-2xl shadow-lg border border-gray-100 px-2 py-1 flex gap-1 z-50"
+                  >
+                    {EMOJI_LIST.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={(e) => handleReact(e, message._id, emoji)}
+                        className={`text-lg hover:scale-125 transition-transform p-0.5 rounded ${myReaction?.emoji === emoji ? 'bg-blue-100' : ''}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setReplyingTo(message)}
+                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
+                title="Reply"
+              >
+                ↩
+              </button>
+              <button
+                onClick={() => handleStartEdit(message._id, message.text)}
+                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
+                title="Edit"
+              >
+                ✏️
+              </button>
+              <button
+                onClick={() => unsendMessage(message._id)}
+                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors text-xs"
+                title="Unsend"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Hover action buttons for other person's messages */}
+          {!isMine && !isEditing && !isSearchResult && (
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-center order-last ml-2">
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setEmojiPickerFor(emojiPickerFor === message._id ? null : message._id)
+                  }}
+                  className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-yellow-500 transition-colors text-xs"
+                  title="React"
+                >
+                  😊
+                </button>
+                {emojiPickerFor === message._id && (
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    className="absolute bottom-9 left-0 bg-white rounded-2xl shadow-lg border border-gray-100 px-2 py-1 flex gap-1 z-50"
+                  >
+                    {EMOJI_LIST.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={(e) => handleReact(e, message._id, emoji)}
+                        className={`text-lg hover:scale-125 transition-transform p-0.5 rounded ${myReaction?.emoji === emoji ? 'bg-blue-100' : ''}`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setReplyingTo(message)}
+                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
+                title="Reply"
+              >
+                ↩
+              </button>
+            </div>
+          )}
+
+          {/* Message bubble + reactions wrapper */}
+          <div className="flex flex-col">
+            <div
+              className={`max-w-xs w-fit px-4 py-2 rounded-2xl text-sm break-words ${
+                isMine
+                  ? `${message.pending ? 'bg-blue-300' : 'bg-blue-500'} text-white rounded-br-sm`
+                  : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+              } ${isSearchResult ? 'ring-2 ring-yellow-300' : ''}`}
+            >
+              {message.replyTo && (
+                <div className={`mb-2 px-2 py-1 rounded-lg border-l-2 text-xs ${
+                  isMine
+                    ? 'border-blue-200 bg-blue-400 text-blue-100'
+                    : 'border-gray-300 bg-gray-100 text-gray-500'
+                }`}>
+                  <p className="font-semibold mb-0.5">
+                    {message.replyTo.senderId === user?._id ? 'You' : otherUser?.username}
+                  </p>
+                  <p className="truncate">{message.replyTo.text}</p>
+                </div>
+              )}
+
+              {isEditing ? (
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    ref={editInputRef}
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault()
+                        handleConfirmEdit()
+                      }
+                      if (e.key === 'Escape') handleCancelEdit()
+                    }}
+                    className="bg-blue-400 text-white placeholder-blue-200 rounded-lg px-2 py-1 text-sm outline-none resize-none w-full min-w-[160px]"
+                    rows={2}
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button onClick={handleCancelEdit} className="text-xs text-blue-200 hover:text-white transition-colors">Cancel</button>
+                    <button onClick={handleConfirmEdit} className="text-xs bg-white text-blue-500 px-2 py-0.5 rounded-full hover:bg-blue-50 transition-colors font-medium">Save</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <p className="whitespace-pre-wrap break-words">{message.text}</p>
+                  {message.edited && (
+                    <p className={`text-xs italic mt-0.5 ${isMine ? 'text-blue-200' : 'text-gray-400'}`}>edited</p>
+                  )}
+                  {!isSearchResult && (
+                    <div className="flex items-center justify-end gap-1 mt-1">
+                      <p className={`text-xs ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
+                        {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                      {isMine && !message.pending && (
+                        <span className={`text-xs font-bold ${message.seen ? 'text-blue-200' : 'text-blue-100 opacity-60'}`}>
+                          {message.seen ? '✓✓' : '✓'}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {hasReactions && (
+              <div className={`flex flex-wrap gap-1 mt-1 ${isMine ? 'justify-end' : 'justify-start'}`}>
+                {Object.entries(
+                  message.reactions!.reduce((acc: Record<string, number>, r: any) => {
+                    acc[r.emoji] = (acc[r.emoji] || 0) + 1
+                    return acc
+                  }, {})
+                ).map(([emoji, count]) => (
+                  <button
+                    key={emoji}
+                    onClick={() => reactToMessage(message._id, emoji)}
+                    className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
+                      myReaction?.emoji === emoji
+                        ? 'bg-blue-100 border-blue-300 text-blue-600'
+                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <span>{emoji}</span>
+                    {(count as number) > 1 && <span>{count as number}</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (!selectedConversation) {
@@ -143,7 +412,7 @@ const ChatArea = () => {
             otherUser?.username.charAt(0).toUpperCase()
           )}
         </div>
-        <div>
+        <div className="flex-1">
           <p className="font-semibold text-gray-800 text-sm">{otherUser?.username}</p>
           {isTyping === selectedConversation._id ? (
             <p className="text-xs flex items-center gap-1 text-blue-400">typing <TypingDots /></p>
@@ -153,141 +422,95 @@ const ChatArea = () => {
             </p>
           )}
         </div>
+        {/* Search toggle button */}
+        <button
+          onClick={() => showSearch ? handleCloseSearch() : setShowSearch(true)}
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors text-sm ${
+            showSearch ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-blue-500 hover:bg-gray-100'
+          }`}
+          title="Search messages"
+        >
+          🔍
+        </button>
       </div>
 
-      {/* Messages */}
-      <div
-        ref={messagesContainerRef}
-        onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 flex flex-col gap-2"
-      >
-        {isMessagesLoading ? (
-          <MessageSkeleton />
-        ) : (
-          <>
-            {hasMoreMessages && (
-              <p className="text-center text-gray-400 text-xs py-2">
-                Scroll up for older messages
-              </p>
-            )}
-            {messages.length === 0 ? (
-              <p className="text-center text-gray-400 text-sm mt-8">No messages yet. Say hello!</p>
-            ) : (
-              messages.map((message, index) => {
-                const isMine = message.senderId === user?._id || message.pending === true
-                const showDivider =
-                  index === 0 ||
-                  getDateLabel(message.createdAt) !== getDateLabel(messages[index - 1].createdAt)
-                const isEditing = editingId === message._id
+      {/* Search bar */}
+      {showSearch && (
+        <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center gap-2">
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            placeholder="Search messages..."
+            className="flex-1 px-3 py-1.5 bg-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+          />
+          {isSearching && <span className="text-xs text-gray-400">Searching...</span>}
+          <button
+            onClick={handleCloseSearch}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
-                return (
-                  <div key={message._id}>
-                    {showDivider && (
-                      <div className="flex items-center gap-2 my-2">
-                        <div className="flex-1 h-px bg-gray-200" />
-                        <span className="text-xs text-gray-400 px-2">{getDateLabel(message.createdAt)}</span>
-                        <div className="flex-1 h-px bg-gray-200" />
-                      </div>
-                    )}
+      {/* Search results */}
+      {showSearch && searchQuery.trim() ? (
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50">
+          {isSearching ? (
+            <p className="text-center text-gray-400 text-sm mt-8">Searching...</p>
+          ) : searchResults.length === 0 ? (
+            <p className="text-center text-gray-400 text-sm mt-8">No messages found for "{searchQuery}"</p>
+          ) : (
+            <>
+              <p className="text-xs text-gray-400 text-center">{searchResults.length} result{searchResults.length !== 1 ? 's' : ''} found</p>
+              {searchResults.map((message, index) => renderMessage(message, index, searchResults, true))}
+            </>
+          )}
+        </div>
+      ) : (
+        /* Normal messages view */
+        <div
+          ref={messagesContainerRef}
+          onScroll={handleScroll}
+          className="flex-1 overflow-y-auto p-4 flex flex-col gap-2"
+        >
+          {isMessagesLoading ? (
+            <MessageSkeleton />
+          ) : (
+            <>
+              {hasMoreMessages && (
+                <p className="text-center text-gray-400 text-xs py-2">Scroll up for older messages</p>
+              )}
+              {messages.length === 0 ? (
+                <p className="text-center text-gray-400 text-sm mt-8">No messages yet. Say hello!</p>
+              ) : (
+                messages.map((message, index) => renderMessage(message, index, messages))
+              )}
+            </>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
 
-                    {/* Message row */}
-                    <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group`}>
-
-                      {/* Hover action buttons — only on my messages, not pending, not editing */}
-                      {isMine && !message.pending && !isEditing && (
-                        <div className="flex items-center gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity self-center">
-                          <button
-                            onClick={() => handleStartEdit(message._id, message.text)}
-                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
-                            title="Edit"
-                          >
-                            ✏️
-                          </button>
-                          <button
-                            onClick={() => unsendMessage(message._id)}
-                            className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors text-xs"
-                            title="Unsend"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Message bubble */}
-                      <div
-                        className={`max-w-xs w-fit px-4 py-2 rounded-2xl text-sm break-words ${
-                          isMine
-                            ? `${message.pending ? 'bg-blue-300' : 'bg-blue-500'} text-white rounded-br-sm`
-                            : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
-                        }`}
-                      >
-                        {/* Inline edit mode */}
-                        {isEditing ? (
-                          <div className="flex flex-col gap-2">
-                            <textarea
-                              ref={editInputRef}
-                              value={editText}
-                              onChange={(e) => setEditText(e.target.value)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                  e.preventDefault()
-                                  handleConfirmEdit()
-                                }
-                                if (e.key === 'Escape') {
-                                  handleCancelEdit()
-                                }
-                              }}
-                              className="bg-blue-400 text-white placeholder-blue-200 rounded-lg px-2 py-1 text-sm outline-none resize-none w-full min-w-[160px]"
-                              rows={2}
-                            />
-                            <div className="flex gap-2 justify-end">
-                              <button
-                                onClick={handleCancelEdit}
-                                className="text-xs text-blue-200 hover:text-white transition-colors"
-                              >
-                                Cancel
-                              </button>
-                              <button
-                                onClick={handleConfirmEdit}
-                                className="text-xs bg-white text-blue-500 px-2 py-0.5 rounded-full hover:bg-blue-50 transition-colors font-medium"
-                              >
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="whitespace-pre-wrap break-words">{message.text}</p>
-                            {message.edited && (
-                              <p className={`text-xs italic mt-0.5 ${isMine ? 'text-blue-200' : 'text-gray-400'}`}>
-                                edited
-                              </p>
-                            )}
-                            <div className="flex items-center justify-end gap-1 mt-1">
-                              <p className={`text-xs ${isMine ? 'text-blue-100' : 'text-gray-400'}`}>
-                                {new Date(message.createdAt).toLocaleTimeString([], {
-                                  hour: '2-digit',
-                                  minute: '2-digit',
-                                })}
-                              </p>
-                              {isMine && !message.pending && (
-                                <span className={`text-xs font-bold ${message.seen ? 'text-blue-200' : 'text-blue-100 opacity-60'}`}>
-                                  {message.seen ? '✓✓' : '✓'}
-                                </span>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            )}
-          </>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+      {/* Reply preview bar */}
+      {replyingTo && (
+        <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center gap-3">
+          <div className="flex-1 border-l-2 border-blue-500 pl-3">
+            <p className="text-xs font-semibold text-blue-500">
+              {replyingTo.senderId === user?._id ? 'You' : otherUser?.username}
+            </p>
+            <p className="text-xs text-gray-500 truncate">{replyingTo.text}</p>
+          </div>
+          <button
+            onClick={() => setReplyingTo(null)}
+            className="text-gray-400 hover:text-gray-600 text-lg transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Message Input */}
       <MessageInput onSend={handleSend} conversationId={selectedConversation._id} />

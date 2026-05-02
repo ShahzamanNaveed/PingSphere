@@ -10,6 +10,18 @@ interface User {
   profilePic: string
 }
 
+interface ReplyTo {
+  _id: string
+  text: string
+  senderId: string
+}
+
+interface Reaction {
+  _id?: string
+  emoji: string
+  userId: string
+}
+
 interface Message {
   _id: string
   conversationId: string
@@ -19,6 +31,8 @@ interface Message {
   edited?: boolean
   createdAt: string
   pending?: boolean
+  replyTo?: ReplyTo | null
+  reactions?: Reaction[]
 }
 
 interface Conversation {
@@ -40,6 +54,9 @@ interface ChatStore {
   isUsersLoading: boolean
   hasMoreMessages: boolean
   unreadCounts: Record<string, number>
+  replyingTo: Message | null
+  searchResults: Message[]
+  isSearching: boolean
   setSelectedConversation: (conversation: Conversation | null) => void
   getConversations: () => Promise<void>
   getUsers: () => Promise<void>
@@ -55,6 +72,10 @@ interface ChatStore {
   markSeen: (conversationId: string) => Promise<void>
   unsendMessage: (messageId: string) => Promise<void>
   editMessage: (messageId: string, text: string) => Promise<void>
+  setReplyingTo: (message: Message | null) => void
+  reactToMessage: (messageId: string, emoji: string) => Promise<void>
+  searchMessages: (conversationId: string, query: string) => Promise<void>
+  clearSearch: () => void
 }
 
 const useChatStore = create<ChatStore>((set, get) => ({
@@ -69,9 +90,16 @@ const useChatStore = create<ChatStore>((set, get) => ({
   isUsersLoading: false,
   hasMoreMessages: false,
   unreadCounts: {},
+  replyingTo: null,
+  searchResults: [],
+  isSearching: false,
 
   setSelectedConversation: (conversation) => {
-    set({ selectedConversation: conversation })
+    set({ selectedConversation: conversation, replyingTo: null, searchResults: [], isSearching: false })
+  },
+
+  setReplyingTo: (message) => {
+    set({ replyingTo: message })
   },
 
   setOnlineUsers: (users) => {
@@ -177,7 +205,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
 
   unsendMessage: async (messageId) => {
     try {
-      // remove locally immediately (optimistic)
       set((state) => ({
         messages: state.messages.filter((m) => m._id !== messageId),
       }))
@@ -189,7 +216,6 @@ const useChatStore = create<ChatStore>((set, get) => ({
 
   editMessage: async (messageId, text) => {
     try {
-      // update locally immediately (optimistic)
       set((state) => ({
         messages: state.messages.map((m) =>
           m._id === messageId ? { ...m, text, edited: true } : m
@@ -201,6 +227,35 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
   },
 
+  reactToMessage: async (messageId, emoji) => {
+    try {
+      await axiosInstance.post(`/messages/${messageId}/react`, { emoji })
+    } catch (error) {
+      toast.error('Could not add reaction')
+    }
+  },
+
+  searchMessages: async (conversationId, query) => {
+    if (!query.trim()) {
+      set({ searchResults: [] })
+      return
+    }
+    set({ isSearching: true })
+    try {
+      const res = await axiosInstance.get(
+        `/messages/${conversationId}/search?q=${encodeURIComponent(query.trim())}`
+      )
+      set({ searchResults: res.data, isSearching: false })
+    } catch (error) {
+      set({ isSearching: false })
+      toast.error('Search failed')
+    }
+  },
+
+  clearSearch: () => {
+    set({ searchResults: [], isSearching: false })
+  },
+
   sendMessage: (conversationId, text) => {
     const socket = getSocket()
     if (!socket) {
@@ -209,6 +264,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
     }
 
     const currentUser = useAuthStore.getState().user
+    const { replyingTo } = get()
     const tempId = `temp_${Date.now()}`
     const tempMessage: Message = {
       _id: tempId,
@@ -218,10 +274,15 @@ const useChatStore = create<ChatStore>((set, get) => ({
       seen: false,
       createdAt: new Date().toISOString(),
       pending: true,
+      replyTo: replyingTo ? {
+        _id: replyingTo._id,
+        text: replyingTo.text,
+        senderId: replyingTo.senderId,
+      } : null,
     }
 
-    set((state) => ({ messages: [...state.messages, tempMessage] }))
-    socket.emit('sendMessage', { conversationId, text })
+    set((state) => ({ messages: [...state.messages, tempMessage], replyingTo: null }))
+    socket.emit('sendMessage', { conversationId, text, replyTo: replyingTo?._id || null })
   },
 
   subscribeToMessages: () => {
@@ -235,6 +296,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
     socket.off('messagesSeen')
     socket.off('messageUnsent')
     socket.off('messageEdited')
+    socket.off('messageReaction')
 
     socket.on('newMessage', (message: Message) => {
       set((state) => {
@@ -310,6 +372,14 @@ const useChatStore = create<ChatStore>((set, get) => ({
         ),
       }))
     })
+
+    socket.on('messageReaction', ({ messageId, reactions }: { messageId: string, reactions: Reaction[] }) => {
+      set((state) => ({
+        messages: state.messages.map((m) =>
+          m._id === messageId ? { ...m, reactions } : m
+        ),
+      }))
+    })
   },
 
   unsubscribeFromMessages: () => {
@@ -322,6 +392,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
     socket.off('messagesSeen')
     socket.off('messageUnsent')
     socket.off('messageEdited')
+    socket.off('messageReaction')
   },
 }))
 
