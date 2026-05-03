@@ -5,10 +5,11 @@ import axiosInstance from '../lib/axios'
 import toast from 'react-hot-toast'
 
 const ProfilePage = () => {
-  const { user, logout, checkAuth, updateAvatar } = useAuthStore()
+  const { user, logout, updateAvatar, updateProfile } = useAuthStore()
   const navigate = useNavigate()
 
   const [username, setUsername] = useState(user?.username || '')
+  const [bio, setBio] = useState(user?.bio || '')
   const [isProfileLoading, setIsProfileLoading] = useState(false)
 
   const [showPasswordForm, setShowPasswordForm] = useState(false)
@@ -22,13 +23,13 @@ const ProfilePage = () => {
       toast.error('Username must be at least 3 characters')
       return
     }
+    if (bio.length > 150) {
+      toast.error('Bio must be 150 characters or less')
+      return
+    }
     setIsProfileLoading(true)
     try {
-      await axiosInstance.put('/users/profile', { username: username.trim() })
-      await checkAuth()
-      toast.success('Profile updated!')
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || 'Something went wrong')
+      await updateProfile(username.trim(), bio.trim())
     } finally {
       setIsProfileLoading(false)
     }
@@ -67,9 +68,12 @@ const ProfilePage = () => {
     navigate('/login')
   }
 
+  const isProfileUnchanged =
+    username.trim() === user?.username && bio.trim() === (user?.bio || '')
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-md w-full max-w-md p-8">
+    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-md w-full max-w-md p-8">
         <button
           onClick={() => navigate('/')}
           className="text-gray-400 hover:text-blue-500 transition-colors text-sm mb-6 flex items-center gap-1"
@@ -101,23 +105,40 @@ const ProfilePage = () => {
             />
           </label>
           <p className="text-gray-400 text-xs mt-2">Click avatar to change</p>
-          <p className="text-gray-500 text-sm mt-1">{user?.email}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{user?.email}</p>
         </div>
 
         {/* Username */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
           <input
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+            className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
           />
         </div>
+
+        {/* Bio */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            Bio
+            <span className="text-gray-400 font-normal ml-1">({bio.length}/150)</span>
+          </label>
+          <textarea
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={150}
+            rows={3}
+            placeholder="Tell people a little about yourself..."
+            className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300 resize-none bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+          />
+        </div>
+
         <button
           onClick={handleUpdate}
-          disabled={isProfileLoading || username.trim() === user?.username}
-          className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-colors mb-6"
+          disabled={isProfileLoading || isProfileUnchanged}
+          className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-colors mb-6"
         >
           {isProfileLoading ? 'Saving...' : 'Save Changes'}
         </button>
@@ -132,41 +153,41 @@ const ProfilePage = () => {
 
         {/* Change Password Form */}
         {showPasswordForm && (
-          <div className="border border-gray-100 rounded-xl p-4 mb-4 flex flex-col gap-3">
+          <div className="border border-gray-100 dark:border-gray-700 rounded-xl p-4 mb-4 flex flex-col gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Current password</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current password</label>
               <input
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                 placeholder="Enter current password"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">New password</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">New password</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                 placeholder="At least 6 characters"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Confirm new password</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirm new password</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+                className="w-full px-4 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
                 placeholder="Repeat new password"
               />
             </div>
             <button
               onClick={handleChangePassword}
               disabled={isPasswordLoading}
-              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-colors"
+              className="w-full bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white py-2 rounded-lg text-sm font-medium transition-colors"
             >
               {isPasswordLoading ? 'Updating...' : 'Update Password'}
             </button>
@@ -176,7 +197,7 @@ const ProfilePage = () => {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="w-full bg-red-50 hover:bg-red-100 text-red-500 py-2 rounded-lg text-sm font-medium transition-colors"
+          className="w-full bg-red-50 dark:bg-red-900 hover:bg-red-100 dark:hover:bg-red-800 text-red-500 dark:text-red-300 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           Logout
         </button>

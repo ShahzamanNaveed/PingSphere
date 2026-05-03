@@ -16,22 +16,39 @@ const getDateLabel = (dateStr: string): string => {
   return date.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
+const getLastSeenLabel = (lastSeen: string | null | undefined): string => {
+  if (!lastSeen) return 'Offline'
+  const date = new Date(lastSeen)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'Last seen just now'
+  if (diffMins < 60) return `Last seen ${diffMins}m ago`
+  if (diffHours < 24) return `Last seen ${diffHours}h ago`
+  if (diffDays === 1) return 'Last seen yesterday'
+  if (diffDays < 7) return `Last seen ${diffDays} days ago`
+  return `Last seen ${date.toLocaleDateString([], { day: 'numeric', month: 'short' })}`
+}
+
 const MessageSkeleton = () => (
   <div className="flex flex-col gap-3 animate-pulse">
     <div className="flex justify-start">
-      <div className="h-10 w-48 bg-gray-200 rounded-2xl" />
+      <div className="h-10 w-48 bg-gray-200 dark:bg-gray-700 rounded-2xl" />
     </div>
     <div className="flex justify-end">
-      <div className="h-10 w-36 bg-gray-200 rounded-2xl" />
+      <div className="h-10 w-36 bg-gray-200 dark:bg-gray-700 rounded-2xl" />
     </div>
     <div className="flex justify-start">
-      <div className="h-10 w-56 bg-gray-200 rounded-2xl" />
+      <div className="h-10 w-56 bg-gray-200 dark:bg-gray-700 rounded-2xl" />
     </div>
     <div className="flex justify-end">
-      <div className="h-10 w-40 bg-gray-200 rounded-2xl" />
+      <div className="h-10 w-40 bg-gray-200 dark:bg-gray-700 rounded-2xl" />
     </div>
     <div className="flex justify-start">
-      <div className="h-10 w-32 bg-gray-200 rounded-2xl" />
+      <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded-2xl" />
     </div>
   </div>
 )
@@ -178,13 +195,12 @@ const ChatArea = () => {
       <div key={message._id}>
         {showDivider && (
           <div className="flex items-center gap-2 my-2">
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
             <span className="text-xs text-gray-400 px-2">{getDateLabel(message.createdAt)}</span>
-            <div className="flex-1 h-px bg-gray-200" />
+            <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
           </div>
         )}
 
-        {/* Search result date label */}
         {isSearchResult && (
           <p className="text-xs text-gray-400 text-center mb-1">
             {getDateLabel(message.createdAt)} · {new Date(message.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -193,7 +209,6 @@ const ChatArea = () => {
 
         <div className={`flex ${isMine ? 'justify-end' : 'justify-start'} group relative`}>
 
-          {/* Hover action buttons for my messages */}
           {isMine && !message.pending && !isEditing && !isSearchResult && (
             <div className="flex items-center gap-1 mr-2 opacity-0 group-hover:opacity-100 transition-opacity self-center">
               <div className="relative">
@@ -202,7 +217,7 @@ const ChatArea = () => {
                     e.stopPropagation()
                     setEmojiPickerFor(emojiPickerFor === message._id ? null : message._id)
                   }}
-                  className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-yellow-500 transition-colors text-xs"
+                  className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 hover:text-yellow-500 transition-colors text-xs"
                   title="React"
                 >
                   😊
@@ -210,13 +225,13 @@ const ChatArea = () => {
                 {emojiPickerFor === message._id && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-9 right-0 bg-white rounded-2xl shadow-lg border border-gray-100 px-2 py-1 flex gap-1 z-50"
+                    className="absolute bottom-9 right-0 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 px-2 py-1 flex gap-1 z-50"
                   >
                     {EMOJI_LIST.map((emoji) => (
                       <button
                         key={emoji}
                         onClick={(e) => handleReact(e, message._id, emoji)}
-                        className={`text-lg hover:scale-125 transition-transform p-0.5 rounded ${myReaction?.emoji === emoji ? 'bg-blue-100' : ''}`}
+                        className={`text-lg hover:scale-125 transition-transform p-0.5 rounded ${myReaction?.emoji === emoji ? 'bg-blue-100 dark:bg-blue-900' : ''}`}
                       >
                         {emoji}
                       </button>
@@ -226,21 +241,21 @@ const ChatArea = () => {
               </div>
               <button
                 onClick={() => setReplyingTo(message)}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
                 title="Reply"
               >
                 ↩
               </button>
               <button
                 onClick={() => handleStartEdit(message._id, message.text)}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
                 title="Edit"
               >
                 ✏️
               </button>
               <button
                 onClick={() => unsendMessage(message._id)}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors text-xs"
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 hover:text-red-500 transition-colors text-xs"
                 title="Unsend"
               >
                 ✕
@@ -248,7 +263,6 @@ const ChatArea = () => {
             </div>
           )}
 
-          {/* Hover action buttons for other person's messages */}
           {!isMine && !isEditing && !isSearchResult && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity self-center order-last ml-2">
               <div className="relative">
@@ -257,7 +271,7 @@ const ChatArea = () => {
                     e.stopPropagation()
                     setEmojiPickerFor(emojiPickerFor === message._id ? null : message._id)
                   }}
-                  className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-yellow-500 transition-colors text-xs"
+                  className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 hover:text-yellow-500 transition-colors text-xs"
                   title="React"
                 >
                   😊
@@ -265,13 +279,13 @@ const ChatArea = () => {
                 {emojiPickerFor === message._id && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className="absolute bottom-9 left-0 bg-white rounded-2xl shadow-lg border border-gray-100 px-2 py-1 flex gap-1 z-50"
+                    className="absolute bottom-9 left-0 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 px-2 py-1 flex gap-1 z-50"
                   >
                     {EMOJI_LIST.map((emoji) => (
                       <button
                         key={emoji}
                         onClick={(e) => handleReact(e, message._id, emoji)}
-                        className={`text-lg hover:scale-125 transition-transform p-0.5 rounded ${myReaction?.emoji === emoji ? 'bg-blue-100' : ''}`}
+                        className={`text-lg hover:scale-125 transition-transform p-0.5 rounded ${myReaction?.emoji === emoji ? 'bg-blue-100 dark:bg-blue-900' : ''}`}
                       >
                         {emoji}
                       </button>
@@ -281,7 +295,7 @@ const ChatArea = () => {
               </div>
               <button
                 onClick={() => setReplyingTo(message)}
-                className="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
+                className="w-7 h-7 rounded-full bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 flex items-center justify-center text-gray-500 hover:text-blue-500 transition-colors text-xs"
                 title="Reply"
               >
                 ↩
@@ -289,20 +303,19 @@ const ChatArea = () => {
             </div>
           )}
 
-          {/* Message bubble + reactions wrapper */}
           <div className="flex flex-col">
             <div
               className={`max-w-xs w-fit px-4 py-2 rounded-2xl text-sm break-words ${
                 isMine
                   ? `${message.pending ? 'bg-blue-300' : 'bg-blue-500'} text-white rounded-br-sm`
-                  : 'bg-white text-gray-800 rounded-bl-sm shadow-sm'
+                  : 'bg-white dark:bg-gray-700 text-gray-800 dark:text-white rounded-bl-sm shadow-sm'
               } ${isSearchResult ? 'ring-2 ring-yellow-300' : ''}`}
             >
               {message.replyTo && (
                 <div className={`mb-2 px-2 py-1 rounded-lg border-l-2 text-xs ${
                   isMine
                     ? 'border-blue-200 bg-blue-400 text-blue-100'
-                    : 'border-gray-300 bg-gray-100 text-gray-500'
+                    : 'border-gray-300 dark:border-gray-500 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-300'
                 }`}>
                   <p className="font-semibold mb-0.5">
                     {message.replyTo.senderId === user?._id ? 'You' : otherUser?.username}
@@ -336,7 +349,7 @@ const ChatArea = () => {
                 <>
                   <p className="whitespace-pre-wrap break-words">{message.text}</p>
                   {message.edited && (
-                    <p className={`text-xs italic mt-0.5 ${isMine ? 'text-blue-200' : 'text-gray-400'}`}>edited</p>
+                    <p className={`text-xs italic mt-0.5 ${isMine ? 'text-blue-200' : 'text-gray-400 dark:text-gray-400'}`}>edited</p>
                   )}
                   {!isSearchResult && (
                     <div className="flex items-center justify-end gap-1 mt-1">
@@ -367,8 +380,8 @@ const ChatArea = () => {
                     onClick={() => reactToMessage(message._id, emoji)}
                     className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-xs border transition-colors ${
                       myReaction?.emoji === emoji
-                        ? 'bg-blue-100 border-blue-300 text-blue-600'
-                        : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        ? 'bg-blue-100 dark:bg-blue-900 border-blue-300 dark:border-blue-700 text-blue-600 dark:text-blue-300'
+                        : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600'
                     }`}
                   >
                     <span>{emoji}</span>
@@ -385,9 +398,9 @@ const ChatArea = () => {
 
   if (!selectedConversation) {
     return (
-      <div className="flex-1 flex items-center justify-center bg-gray-50">
+      <div className="flex-1 flex items-center justify-center bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
-          <p className="text-2xl font-bold text-gray-300">👋 Welcome to PingSphere</p>
+          <p className="text-2xl font-bold text-gray-300 dark:text-gray-600">👋 Welcome to PingSphere</p>
           <p className="text-gray-400 mt-2 text-sm">Select a conversation to start chatting</p>
         </div>
       </div>
@@ -398,35 +411,39 @@ const ChatArea = () => {
     <div className="flex-1 flex flex-col h-full w-full">
 
       {/* Chat Header */}
-      <div className="px-4 py-3 bg-white border-b border-gray-200 flex items-center gap-3">
+      <div className="px-4 py-3 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
         <button
           onClick={() => setSelectedConversation(null)}
           className="md:hidden text-gray-500 hover:text-blue-500 transition-colors text-xl mr-1"
         >
           ←
         </button>
-        <div className="w-9 h-9 rounded-full overflow-hidden bg-green-500 flex items-center justify-center text-white font-bold text-sm">
+        <div className="w-9 h-9 rounded-full overflow-hidden bg-green-500 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
           {otherUser?.profilePic ? (
             <img src={otherUser.profilePic} alt="avatar" className="w-full h-full object-cover" />
           ) : (
             otherUser?.username.charAt(0).toUpperCase()
           )}
         </div>
-        <div className="flex-1">
-          <p className="font-semibold text-gray-800 text-sm">{otherUser?.username}</p>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-800 dark:text-white text-sm">{otherUser?.username}</p>
           {isTyping === selectedConversation._id ? (
             <p className="text-xs flex items-center gap-1 text-blue-400">typing <TypingDots /></p>
+          ) : isOnline ? (
+            <p className="text-xs text-green-500">Online</p>
           ) : (
-            <p className={`text-xs ${isOnline ? 'text-green-500' : 'text-gray-400'}`}>
-              {isOnline ? 'Online' : 'Offline'}
-            </p>
+            <p className="text-xs text-gray-400">{getLastSeenLabel(otherUser?.lastSeen)}</p>
+          )}
+          {otherUser?.bio && (
+            <p className="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{otherUser.bio}</p>
           )}
         </div>
-        {/* Search toggle button */}
         <button
           onClick={() => showSearch ? handleCloseSearch() : setShowSearch(true)}
-          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors text-sm ${
-            showSearch ? 'bg-blue-500 text-white' : 'text-gray-400 hover:text-blue-500 hover:bg-gray-100'
+          className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors text-sm flex-shrink-0 ${
+            showSearch
+              ? 'bg-blue-500 text-white'
+              : 'text-gray-400 hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-gray-700'
           }`}
           title="Search messages"
         >
@@ -436,19 +453,19 @@ const ChatArea = () => {
 
       {/* Search bar */}
       {showSearch && (
-        <div className="px-4 py-2 bg-white border-b border-gray-200 flex items-center gap-2">
+        <div className="px-4 py-2 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center gap-2">
           <input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={handleSearchChange}
             placeholder="Search messages..."
-            className="flex-1 px-3 py-1.5 bg-gray-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
+            className="flex-1 px-3 py-1.5 bg-gray-100 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-lg text-sm outline-none focus:ring-2 focus:ring-blue-300"
           />
           {isSearching && <span className="text-xs text-gray-400">Searching...</span>}
           <button
             onClick={handleCloseSearch}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
           >
             ✕
           </button>
@@ -457,7 +474,7 @@ const ChatArea = () => {
 
       {/* Search results */}
       {showSearch && searchQuery.trim() ? (
-        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-gray-50 dark:bg-gray-900">
           {isSearching ? (
             <p className="text-center text-gray-400 text-sm mt-8">Searching...</p>
           ) : searchResults.length === 0 ? (
@@ -470,11 +487,10 @@ const ChatArea = () => {
           )}
         </div>
       ) : (
-        /* Normal messages view */
         <div
           ref={messagesContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto p-4 flex flex-col gap-2"
+          className="flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-gray-50 dark:bg-gray-900"
         >
           {isMessagesLoading ? (
             <MessageSkeleton />
@@ -496,16 +512,16 @@ const ChatArea = () => {
 
       {/* Reply preview bar */}
       {replyingTo && (
-        <div className="px-4 py-2 bg-gray-50 border-t border-gray-200 flex items-center gap-3">
+        <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-center gap-3">
           <div className="flex-1 border-l-2 border-blue-500 pl-3">
             <p className="text-xs font-semibold text-blue-500">
               {replyingTo.senderId === user?._id ? 'You' : otherUser?.username}
             </p>
-            <p className="text-xs text-gray-500 truncate">{replyingTo.text}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{replyingTo.text}</p>
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="text-gray-400 hover:text-gray-600 text-lg transition-colors"
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-lg transition-colors"
           >
             ✕
           </button>
@@ -558,14 +574,14 @@ const MessageInput = ({ onSend, conversationId }: { onSend: (text: string) => vo
   }
 
   return (
-    <div className="px-4 py-3 bg-white border-t border-gray-200 flex items-end gap-3">
+    <div className="px-4 py-3 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex items-end gap-3">
       <textarea
         ref={textRef}
         placeholder="Type a message..."
         rows={1}
         onInput={handleInput}
         onKeyDown={handleKeyDown}
-        className="flex-1 px-4 py-2 bg-gray-100 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-300 resize-none overflow-y-auto leading-5"
+        className="flex-1 px-4 py-2 bg-gray-100 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-blue-300 resize-none overflow-y-auto leading-5"
       />
       <button
         onClick={handleSubmit}

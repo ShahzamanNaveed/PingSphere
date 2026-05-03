@@ -9,6 +9,8 @@ interface User {
   username: string
   email: string
   profilePic: string
+  bio: string
+  lastSeen: string | null
 }
 
 interface AuthStore {
@@ -20,6 +22,7 @@ interface AuthStore {
   login: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   updateAvatar: (file: File) => Promise<void>
+  updateProfile: (username: string, bio: string) => Promise<void>
 }
 
 const useAuthStore = create<AuthStore>((set) => ({
@@ -90,6 +93,16 @@ const useAuthStore = create<AuthStore>((set) => ({
       toast.success('Avatar updated!')
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Could not upload avatar')
+    }
+  },
+
+  updateProfile: async (username, bio) => {
+    try {
+      const res = await axiosInstance.put('/users/profile', { username, bio })
+      set({ user: res.data })
+      toast.success('Profile updated!')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Could not update profile')
     }
   },
 }))

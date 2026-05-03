@@ -2,20 +2,22 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
 import useChatStore from '../store/chatStore'
+import useThemeStore from '../store/themeStore'
 import TypingDots from './TypingDots'
 
 const ConversationSkeleton = () => (
   <div className="flex items-center gap-3 p-4 animate-pulse">
-    <div className="w-10 h-10 rounded-full bg-gray-200 flex-shrink-0" />
+    <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
     <div className="flex-1 space-y-2">
-      <div className="h-3 bg-gray-200 rounded w-1/2" />
-      <div className="h-3 bg-gray-200 rounded w-3/4" />
+      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+      <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
     </div>
   </div>
 )
 
 const Sidebar = () => {
   const { user, logout } = useAuthStore()
+  const { isDark, toggleTheme } = useThemeStore()
   const {
     conversations,
     getConversations,
@@ -59,10 +61,10 @@ const Sidebar = () => {
   })
 
   return (
-    <div className="w-80 bg-white border-r border-gray-200 flex flex-col h-full w-full">
+    <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col h-full w-full">
 
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div
             onClick={() => navigate('/profile')}
@@ -75,19 +77,27 @@ const Sidebar = () => {
               user?.username.charAt(0).toUpperCase()
             )}
           </div>
-          <span className="font-semibold text-gray-800">{user?.username}</span>
+          <span className="font-semibold text-gray-800 dark:text-white">{user?.username}</span>
         </div>
         <div className="flex items-center gap-2">
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggleTheme}
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 transition-colors"
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? '☀️' : '🌙'}
+          </button>
           <button
             onClick={handleOpenModal}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-500 hover:text-blue-500 transition-colors text-xl"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 dark:text-gray-400 hover:text-blue-500 transition-colors text-xl"
             title="New conversation"
           >
             +
           </button>
           <button
             onClick={logout}
-            className="text-sm text-gray-500 hover:text-red-500 transition-colors"
+            className="text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 transition-colors"
           >
             Logout
           </button>
@@ -95,13 +105,13 @@ const Sidebar = () => {
       </div>
 
       {/* Search */}
-      <div className="p-3 border-b border-gray-200">
+      <div className="p-3 border-b border-gray-200 dark:border-gray-700">
         <input
           type="text"
           placeholder="Search conversations..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full px-3 py-2 text-sm bg-gray-100 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
+          className="w-full px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 dark:text-white dark:placeholder-gray-400 rounded-lg outline-none focus:ring-2 focus:ring-blue-300"
         />
       </div>
 
@@ -128,8 +138,10 @@ const Sidebar = () => {
               <div
                 key={conversation._id}
                 onClick={() => setSelectedConversation(conversation)}
-                className={`flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                  isSelected ? 'bg-blue-50 border-r-2 border-blue-500' : ''
+                className={`flex items-center gap-3 p-4 cursor-pointer transition-colors ${
+                  isSelected
+                    ? 'bg-blue-50 dark:bg-blue-900 border-r-2 border-blue-500'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700'
                 }`}
               >
                 {/* Avatar with online dot */}
@@ -142,19 +154,19 @@ const Sidebar = () => {
                     )}
                   </div>
                   {isOtherOnline && (
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />
+                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full" />
                   )}
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 text-sm">{other?.username}</p>
+                  <p className="font-medium text-gray-800 dark:text-white text-sm">{other?.username}</p>
                   <p className="text-xs truncate">
                     {isTyping === conversation._id ? (
                       <span className="flex items-center gap-1 text-blue-400">typing <TypingDots /></span>
                     ) : conversation.lastMessage ? (
-                      <span className="text-gray-400">{conversation.lastMessage.text}</span>
+                      <span className="text-gray-400 dark:text-gray-500">{conversation.lastMessage.text}</span>
                     ) : (
-                      <span className="text-gray-400">No messages yet</span>
+                      <span className="text-gray-400 dark:text-gray-500">No messages yet</span>
                     )}
                   </p>
                 </div>
@@ -175,13 +187,13 @@ const Sidebar = () => {
       {/* New Conversation Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-xl w-80 max-h-96 flex flex-col">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-80 max-h-96 flex flex-col">
 
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-800">New Conversation</h2>
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="font-semibold text-gray-800 dark:text-white">New Conversation</h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-xl"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
               >
                 ✕
               </button>
@@ -201,7 +213,7 @@ const Sidebar = () => {
                   <div
                     key={u._id}
                     onClick={() => handleSelectUser(u._id)}
-                    className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className="flex items-center gap-3 p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   >
                     <div className="relative">
                       <div className="w-9 h-9 rounded-full overflow-hidden bg-purple-500 flex items-center justify-center text-white font-bold text-sm">
@@ -212,10 +224,10 @@ const Sidebar = () => {
                         )}
                       </div>
                       {onlineUsers.includes(u._id) && (
-                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />
+                        <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full" />
                       )}
                     </div>
-                    <span className="text-sm font-medium text-gray-800">{u.username}</span>
+                    <span className="text-sm font-medium text-gray-800 dark:text-white">{u.username}</span>
                   </div>
                 ))
               )}

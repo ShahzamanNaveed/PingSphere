@@ -14,15 +14,22 @@ export const getUsers = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { username } = req.body
+    const { username, bio } = req.body
 
     if (!username || username.trim().length < 3) {
       return res.status(400).json({ message: 'Username must be at least 3 characters' })
     }
 
+    if (bio !== undefined && bio.length > 150) {
+      return res.status(400).json({ message: 'Bio must be 150 characters or less' })
+    }
+
+    const updateData = { username: username.trim() }
+    if (bio !== undefined) updateData.bio = bio.trim()
+
     const updatedUser = await User.findByIdAndUpdate(
       req.user._id,
-      { username: username.trim() },
+      updateData,
       { new: true }
     ).select('-password')
 
@@ -59,7 +66,6 @@ export const changePassword = async (req, res) => {
   }
 }
 
-
 export const uploadAvatar = async (req, res) => {
   try {
     if (!req.file) {
@@ -87,6 +93,14 @@ export const uploadAvatar = async (req, res) => {
   } catch (error) {
     console.error('uploadAvatar error:', error.message)
     res.status(500).json({ message: 'Server error' })
+  }
+}
+
+export const updateLastSeen = async (userId) => {
+  try {
+    await User.findByIdAndUpdate(userId, { lastSeen: new Date() })
+  } catch (error) {
+    console.error('updateLastSeen error:', error.message)
   }
 }
 

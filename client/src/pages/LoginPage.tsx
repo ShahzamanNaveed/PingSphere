@@ -18,35 +18,35 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100">
-      <div className="bg-white p-8 rounded-xl shadow-md w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Welcome Back</h1>
+    <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md w-full max-w-md">
+        <h1 className="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-white">Welcome Back</h1>
 
         {error && (
-          <div className="bg-red-100 text-red-600 p-3 rounded-lg mb-4 text-sm">
+          <div className="bg-red-100 dark:bg-red-900 text-red-600 dark:text-red-300 p-3 rounded-lg mb-4 text-sm">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
               placeholder="Enter email"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-white"
               placeholder="Enter password"
             />
           </div>
@@ -60,7 +60,7 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <p className="text-center text-sm mt-4">
+        <p className="text-center text-sm mt-4 text-gray-500 dark:text-gray-400">
           Don't have an account?{' '}
           <Link to="/register" className="text-blue-500 hover:underline">
             Register

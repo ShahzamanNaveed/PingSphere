@@ -8,6 +8,8 @@ interface User {
   _id: string
   username: string
   profilePic: string
+  bio?: string
+  lastSeen?: string | null
 }
 
 interface ReplyTo {

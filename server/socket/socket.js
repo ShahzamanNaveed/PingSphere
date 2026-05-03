@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import cookie from 'cookie'
 import Message from '../models/Message.js'
 import Conversation from '../models/Conversation.js'
+import { updateLastSeen } from '../controllers/user.controller.js'
 
 const presenceMap = new Map()
 
@@ -106,6 +107,7 @@ export const initSocket = (server) => {
       console.log(`User disconnected: ${socket.userId}`)
       presenceMap.delete(socket.userId)
       io.emit('onlineUsers', Array.from(presenceMap.keys()))
+      updateLastSeen(socket.userId)
     })
   })
 
