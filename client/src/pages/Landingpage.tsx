@@ -41,10 +41,8 @@ const LandingPage = () => {
       dots.forEach(d => {
         d.o += d.speed
         if (d.o > 1) { d.o = 0; d.speed = 0.002 + Math.random() * 0.003 }
-        ctx.beginPath()
-        ctx.arc(d.x, d.y, 1.5, 0, Math.PI * 2)
         ctx.fillStyle = `rgba(99,102,241,${d.o * 0.15})` // Indigo dots
-        ctx.fill()
+        ctx.fillRect(d.x - 1.5, d.y - 1.5, 3, 3)
       })
       animId = requestAnimationFrame(draw)
     }
@@ -93,8 +91,8 @@ const LandingPage = () => {
       <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0 opacity-50 dark:opacity-100" />
 
       {/* Subtle radial glow */}
-      <div className="fixed top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-indigo-500/10 blur-[150px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-200px] right-[-100px] w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[150px] pointer-events-none z-0" />
+      <div className="fixed top-[-200px] left-1/2 -translate-x-1/2 w-[800px] h-[800px] rounded-full bg-indigo-500/10 blur-[150px] transform-gpu pointer-events-none z-0" />
+      <div className="fixed bottom-[-200px] right-[-100px] w-[600px] h-[600px] rounded-full bg-purple-500/10 blur-[150px] transform-gpu pointer-events-none z-0" />
 
       {/* ── NAVBAR ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 md:px-12 py-4 glass border-b-0 border-white/20 dark:border-gray-800/50">
@@ -125,7 +123,7 @@ const LandingPage = () => {
         <section className="relative z-10 flex flex-col items-center text-center px-6 pt-16 pb-20">
 
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-xs px-4 py-1.5 rounded-full mb-8 font-medium shadow-sm backdrop-blur-sm transition-transform hover:scale-105 cursor-default">
+          <div className="inline-flex items-center gap-2 border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-xs px-4 py-1.5 rounded-full mb-8 font-medium shadow-sm backdrop-blur-sm transform-gpu transition-transform hover:scale-105 cursor-default">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
@@ -166,7 +164,7 @@ const LandingPage = () => {
           {/* ── MOCK CHAT UI ── */}
           <div className="mt-20 w-full max-w-2xl mx-auto relative group perspective-1000">
             {/* Decorative background glow for the mockup */}
-            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/20 to-purple-500/20 blur-3xl rounded-3xl -z-10 transition-opacity duration-500 group-hover:opacity-100 opacity-70"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/20 to-purple-500/20 blur-3xl transform-gpu rounded-3xl -z-10 transition-opacity duration-500 group-hover:opacity-100 opacity-70"></div>
             
             <div className="glass-card rounded-2xl overflow-hidden shadow-2xl shadow-gray-200/50 dark:shadow-black/50 border border-white/40 dark:border-white/10 transition-transform duration-500 hover:scale-[1.02]">
 
@@ -179,7 +177,7 @@ const LandingPage = () => {
               </div>
 
               {/* Chat header */}
-              <div className="flex items-center gap-4 px-5 py-4 border-b border-gray-200/50 dark:border-white/5 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md">
+              <div className="flex items-center gap-4 px-5 py-4 border-b border-gray-200/50 dark:border-white/5 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md transform-gpu">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-sm font-bold text-white shadow-md">A</div>
                   <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white dark:border-gray-900" />
@@ -237,7 +235,7 @@ const LandingPage = () => {
               </div>
 
               {/* Input bar */}
-              <div className="px-5 py-4 border-t border-gray-200/50 dark:border-white/5 bg-white/80 dark:bg-gray-900/80 backdrop-blur flex items-center gap-3">
+              <div className="px-5 py-4 border-t border-gray-200/50 dark:border-white/5 bg-white/80 dark:bg-gray-900/80 backdrop-blur transform-gpu flex items-center gap-3">
                 <button className="text-gray-400 hover:text-indigo-500 transition-colors">
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
                 </button>
@@ -283,8 +281,8 @@ const LandingPage = () => {
         <section className="relative z-10 px-6 py-24 text-center">
           <div className="max-w-4xl mx-auto glass-card rounded-3xl px-8 py-16 bg-gradient-to-br from-indigo-900/5 to-purple-900/5 dark:from-indigo-900/20 dark:to-purple-900/20 border border-indigo-100 dark:border-indigo-500/20 relative overflow-hidden">
             {/* Background elements for CTA */}
-            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute top-0 right-0 -mt-10 -mr-10 w-40 h-40 bg-purple-500/20 rounded-full blur-3xl transform-gpu pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-indigo-500/20 rounded-full blur-3xl transform-gpu pointer-events-none"></div>
             
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-4 relative z-10">Start your conversation today.</h2>
             <p className="text-gray-600 dark:text-gray-300 text-lg mb-8 max-w-lg mx-auto relative z-10">Join thousands of users enjoying a faster, more secure way to communicate.</p>
@@ -302,7 +300,7 @@ const LandingPage = () => {
       </main>
 
       {/* ── FOOTER ── */}
-      <footer className="relative z-10 border-t border-gray-200 dark:border-white/5 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm px-6 py-8">
+      <footer className="relative z-10 border-t border-gray-200 dark:border-white/5 bg-white/50 dark:bg-gray-950/50 backdrop-blur-sm transform-gpu px-6 py-8">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">

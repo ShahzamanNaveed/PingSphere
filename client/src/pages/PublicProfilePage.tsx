@@ -110,7 +110,7 @@ const PublicProfilePage = () => {
       <div className="absolute bottom-[10%] right-[10%] w-[30%] h-[30%] rounded-full bg-purple-500/10 blur-[100px] pointer-events-none" />
 
       {/* Top bar */}
-      <div className="border-b border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md px-6 py-4 flex items-center gap-4 relative z-10">
+      <div className="border-b border-gray-200/50 dark:border-gray-800/50 bg-white/50 dark:bg-gray-900/50 backdrop-blur-md transform-gpu px-6 py-4 flex items-center gap-4 relative z-10">
         <button
           onClick={() => navigate(-1)}
           className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"

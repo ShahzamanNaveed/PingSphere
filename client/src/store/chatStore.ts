@@ -59,6 +59,7 @@ interface ChatStore {
   replyingTo: Message | null
   searchResults: Message[]
   isSearching: boolean
+  isLoadingMore: boolean
   setSelectedConversation: (conversation: Conversation | null) => void
   getConversations: () => Promise<void>
   getUsers: () => Promise<void>
@@ -95,6 +96,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
   replyingTo: null,
   searchResults: [],
   isSearching: false,
+  isLoadingMore: false,
 
   setSelectedConversation: (conversation) => {
     set({ selectedConversation: conversation, replyingTo: null, searchResults: [], isSearching: false })
@@ -174,22 +176,25 @@ const useChatStore = create<ChatStore>((set, get) => ({
   },
 
   loadMoreMessages: async (conversationId) => {
-    const { messages, hasMoreMessages } = get()
-    if (!hasMoreMessages || messages.length === 0) return
+    const { messages, hasMoreMessages, isLoadingMore } = get()
+    if (!hasMoreMessages || messages.length === 0 || isLoadingMore) return
+    set({ isLoadingMore: true })
     const oldestMessage = messages[0]
     try {
       const res = await axiosInstance.get(
         `/messages/${conversationId}?before=${oldestMessage._id}`
       )
       if (res.data.length === 0) {
-        set({ hasMoreMessages: false })
+        set({ hasMoreMessages: false, isLoadingMore: false })
         return
       }
       set({
         messages: [...res.data, ...messages],
         hasMoreMessages: res.data.length === 30,
+        isLoadingMore: false,
       })
     } catch {
+      set({ isLoadingMore: false })
       toast.error('Could not load older messages')
     }
   },

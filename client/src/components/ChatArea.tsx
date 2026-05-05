@@ -445,10 +445,10 @@ const ChatArea = () => {
   return (
     <div className="flex-1 flex flex-col h-full w-full relative overflow-hidden">
       {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed opacity-50 dark:opacity-5 pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-50 dark:opacity-5 pointer-events-none z-0" />
 
       {/* Chat Header */}
-      <div className="px-5 py-3.5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800/60 flex items-center gap-3 z-20 shadow-sm shrink-0 relative">
+      <div className="px-5 py-3.5 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md transform-gpu border-b border-gray-100 dark:border-gray-800/60 flex items-center gap-3 z-20 shadow-sm shrink-0 relative">
         <button
           onClick={() => setSelectedConversation(null)}
           className="md:hidden w-8 h-8 rounded-full flex items-center justify-center text-gray-500 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-gray-800 transition-colors mr-1"
@@ -514,7 +514,7 @@ const ChatArea = () => {
 
       {/* Search bar */}
       {showSearch && (
-        <div className="px-5 py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 z-10 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+        <div className="px-5 py-3 bg-white/90 dark:bg-gray-900/90 backdrop-blur-md transform-gpu border-b border-gray-100 dark:border-gray-800 z-10 flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -598,7 +598,7 @@ const ChatArea = () => {
 
       {/* Reply preview bar */}
       {replyingTo && (
-        <div className="absolute bottom-[72px] left-4 right-4 md:left-6 md:right-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-3 flex items-start gap-3 shadow-lg z-20 animate-in slide-in-from-bottom-5">
+        <div className="absolute bottom-[72px] left-4 right-4 md:left-6 md:right-6 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md transform-gpu border border-gray-200/50 dark:border-gray-700/50 rounded-2xl p-3 flex items-start gap-3 shadow-lg z-20 animate-in slide-in-from-bottom-5">
           <div className="flex-1 border-l-4 border-indigo-500 pl-3">
             <div className="flex items-center gap-2 mb-0.5">
               <svg className="w-3.5 h-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" /></svg>

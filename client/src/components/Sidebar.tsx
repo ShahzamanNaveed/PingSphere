@@ -64,7 +64,7 @@ const Sidebar = () => {
     <div className="w-full bg-white dark:bg-gray-900 flex flex-col h-full overflow-hidden">
 
       {/* Header */}
-      <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md z-10 shrink-0">
+      <div className="px-5 py-4 flex items-center justify-between border-b border-gray-100 dark:border-gray-800/60 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md transform-gpu z-10 shrink-0">
         <div 
           onClick={() => navigate('/profile')}
           className="flex items-center gap-3 cursor-pointer group"
@@ -222,7 +222,7 @@ const Sidebar = () => {
 
       {/* New Conversation Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-900/40 dark:bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+        <div className="fixed inset-0 bg-gray-900/40 dark:bg-black/60 backdrop-blur-sm transform-gpu flex items-center justify-center z-[100] p-4">
           <div 
             className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col border border-gray-100 dark:border-gray-800 animate-in fade-in zoom-in-95 duration-200"
             onClick={(e) => e.stopPropagation()}
