@@ -12,6 +12,18 @@ export const getUsers = async (req, res) => {
   }
 }
 
+export const getUserById = async (req, res) => {
+  try {
+    const { userId } = req.params
+    const user = await User.findById(userId).select('-password')
+    if (!user) return res.status(404).json({ message: 'User not found' })
+    res.status(200).json(user)
+  } catch (error) {
+    console.error('getUserById error:', error.message)
+    res.status(500).json({ message: 'Server error' })
+  }
+}
+
 export const updateProfile = async (req, res) => {
   try {
     const { username, bio } = req.body
