@@ -1,3 +1,4 @@
+import React from 'react';
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import useAuthStore from '../store/authStore'
@@ -65,7 +66,7 @@ const SettingsPage = () => {
     navigate('/login')
   }
 
-  const navItems: { id: Tab; label: string; icon: JSX.Element }[] = [
+  const navItems: { id: Tab; label: string; icon: React.ReactElement }[] = [
     { 
       id: 'account', 
       label: 'Account', 
