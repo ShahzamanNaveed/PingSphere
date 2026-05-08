@@ -114,6 +114,12 @@ const ChatArea = () => {
 
   const otherUser = getOtherUser()
   const isOnline = onlineUsers.includes(otherUser?._id || '')
+
+  const handleViewProfile = () => {
+  navigate(`/profile/${otherUser?._id}`)
+  setShowMenu(false)
+  }
+
   const handleClearChat = async () => {
     if (!selectedConversation) return
     await useChatStore.getState().clearChat(selectedConversation._id)
