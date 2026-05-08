@@ -79,6 +79,7 @@ interface ChatStore {
   reactToMessage: (messageId: string, emoji: string) => Promise<void>
   searchMessages: (conversationId: string, query: string) => Promise<void>
   clearSearch: () => void
+  clearChat: (conversationId: string) => Promise<void>
 }
 
 const useChatStore = create<ChatStore>((set, get) => ({
@@ -400,6 +401,40 @@ const useChatStore = create<ChatStore>((set, get) => ({
     socket.off('messageUnsent')
     socket.off('messageEdited')
     socket.off('messageReaction')
+  },
+
+  clearChat: async (conversationId: string) => {
+    try {
+
+      await axiosInstance.delete(`/messages/${conversationId}`)
+
+      set({
+        messages: []
+      })
+
+      toast.success('Chat cleared')
+
+    } catch {
+
+      toast.error('Could not clear chat')
+
+    }
+  },
+
+  toggleMute: (conversationId) => {
+    set((state) => {
+
+      const alreadyMuted =
+        state.mutedChats.includes(conversationId)
+
+      return {
+        mutedChats: alreadyMuted
+          ? state.mutedChats.filter(
+              id => id !== conversationId
+            )
+          : [...state.mutedChats, conversationId],
+      }
+    })
   },
 }))
 

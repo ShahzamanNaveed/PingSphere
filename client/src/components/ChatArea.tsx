@@ -101,6 +101,7 @@ const ChatArea = () => {
   const [editText, setEditText] = useState('')
   const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null)
   const [showSearch, setShowSearch] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const editInputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -110,6 +111,12 @@ const ChatArea = () => {
 
   const otherUser = getOtherUser()
   const isOnline = onlineUsers.includes(otherUser?._id || '')
+  const handleClearChat = async () => {
+    if (!selectedConversation) return
+    await useChatStore.getState().clearChat(selectedConversation._id)
+    setShowMenu(false)
+  }
+
 
   useEffect(() => {
     if (!selectedConversation) return
@@ -504,11 +511,34 @@ const ChatArea = () => {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </button>
           <button
+            onClick={() => setShowMenu(prev => !prev)}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-800"
             title="More options"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
           </button>
+            {showMenu && (
+              <div className="absolute top-16 right-5 w-56 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+                <button
+                  onClick={handleViewProfile}
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  View Profile
+                </button>
+                <button
+                  onClick={handleClearChat}
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Clear Chat
+                </button>
+                <button
+                  onClick={handleMuteChat}
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  {isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
+                </button>
+              </div>
+            )}
         </div>
       </div>
 
