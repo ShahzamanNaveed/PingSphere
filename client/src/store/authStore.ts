@@ -23,6 +23,8 @@ interface AuthStore {
   logout: () => Promise<void>
   updateAvatar: (file: File) => Promise<void>
   updateProfile: (username: string, bio: string) => Promise<void>
+  forgotPassword: (email: string) => Promise<void>
+  resetPassword: (token: string, password: string) => Promise<void>
 }
 
 const useAuthStore = create<AuthStore>((set) => ({
@@ -103,6 +105,27 @@ const useAuthStore = create<AuthStore>((set) => ({
       toast.success('Profile updated!')
     } catch (error: any) {
       toast.error(error.response?.data?.message || 'Could not update profile')
+    }
+  },
+
+  forgotPassword: async (email: string) => {
+    try {
+      const res = await axiosInstance.post('/auth/forgot-password', { email })
+      toast.success('Reset email sent')
+      return res.data
+    } catch (error: any) {
+      toast.error(error.response?.data?.message)
+    }
+  },
+
+  resetPassword: async (token: string, password: string) => {
+    try {
+      await axiosInstance.post(`/auth/reset-password/${token}`, {
+        password,
+      })
+      toast.success('Password reset successful')
+    } catch (error: any) {
+      toast.error(error.response?.data?.message)
     }
   },
 }))
