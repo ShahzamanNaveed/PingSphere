@@ -1,6 +1,7 @@
 import User from '../models/User.js'
 import cloudinary from '../config/cloudinary.js'
 import multer from 'multer'
+import Message from '../models/Message.js'
 
 export const getUsers = async (req, res) => {
   try {
@@ -125,3 +126,24 @@ export const multerUpload = multer({
     else cb(new Error('Only JPEG, PNG and WebP images are allowed'))
   },
 })
+
+export const deleteAccount = async (req, res) => {
+  try {
+    const userId = req.user._id.toString()
+    await Message.deleteMany({
+      $or: [
+        { senderId: userId },
+        { receiverId: userId }
+      ]
+    })
+    await User.findByIdAndDelete(userId)
+    res.status(200).json({
+      message: 'Account deleted successfully'
+    })
+  } catch (error) {
+    console.error('deleteAccount error:', error)
+    res.status(500).json({
+      message: error.message
+    })
+  }
+}

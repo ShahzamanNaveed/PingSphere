@@ -1,4 +1,5 @@
 import Conversation from '../models/Conversation.js'
+import Message from '../models/Message.js'
 
 export const getConversations = async (req, res) => {
   try {
@@ -8,6 +9,18 @@ export const getConversations = async (req, res) => {
       .populate('participants', '-password')
       .populate('lastMessage')
       .sort({ updatedAt: -1 })
+
+      for (const conversation of conversations) {
+
+      const visibleLastMessage = await Message.findOne({
+        conversationId: conversation._id,
+        deletedFor: { $ne: req.user._id }
+      })
+        .sort({ createdAt: -1 })
+
+
+      conversation.lastMessage = visibleLastMessage || null
+    }
 
     res.status(200).json(conversations)
   } catch (error) {

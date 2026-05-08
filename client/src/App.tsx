@@ -10,13 +10,15 @@ import NotFoundPage from './pages/NotFoundPage'
 import LandingPage from './pages/Landingpage'
 import SettingsPage from './pages/SettingsPage'
 import useAuthStore from './store/authStore'
+import ForgotPassword from './pages/ForgotPassword'
+import ResetPassword from './pages/ResetPassword'
 
 const App = () => {
   const { user, checkAuth, isLoading } = useAuthStore()
 
   useEffect(() => {
     checkAuth()
-  }, [])
+  }, [checkAuth])
 
   if (isLoading) {
     return (
@@ -36,6 +38,8 @@ const App = () => {
         <Route path="/landing" element={<LandingPage />} />
         <Route path="/" element={user ? <HomePage /> : <Navigate to="/landing" replace />} />
         <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/" replace />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password/:token" element={<ResetPassword />} />
         <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/" replace />} />
         <Route path="/profile" element={user ? <ProfilePage /> : <Navigate to="/login" replace />} />
         <Route path="/profile/:userId" element={user ? <PublicProfilePage /> : <Navigate to="/login" replace />} />

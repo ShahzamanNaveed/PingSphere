@@ -17,7 +17,10 @@ export const getMessages = async (req, res) => {
       return res.status(403).json({ message: 'Access denied' })
     }
 
-    const query = { conversationId }
+    const query = {
+      conversationId,
+      deletedFor: { $ne: req.user._id }
+}
 
     if (before) {
       const cursorMessage = await Message.findById(before)
@@ -271,5 +274,49 @@ export const searchMessages = async (req, res) => {
   } catch (error) {
     console.error('searchMessages error:', error.message)
     res.status(500).json({ message: 'Server error' })
+  }
+}
+
+export const clearChat = async (req, res) => {
+  try {
+
+    const userId = req.user._id
+    const { conversationId } = req.params
+
+    // Security check
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: { $in: [userId] }
+    })
+
+    if (!conversation) {
+      return res.status(403).json({
+        message: 'Access denied'
+      })
+    }
+
+    await Message.updateMany(
+      {
+        conversationId
+      },
+      {
+        $addToSet: {
+          deletedFor: userId
+        }
+      }
+    )
+
+    res.status(200).json({
+      success: true,
+      message: 'Chat cleared'
+    })
+
+  } catch (error) {
+
+    console.error('clearChat error:', error)
+
+    res.status(500).json({
+      message: 'Could not clear chat'
+    })
   }
 }

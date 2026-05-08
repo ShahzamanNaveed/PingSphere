@@ -90,6 +90,8 @@ const ChatArea = () => {
     clearSearch,
     searchResults,
     isSearching,
+    toggleMute,
+    mutedChats,
   } = useChatStore()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -101,8 +103,10 @@ const ChatArea = () => {
   const [editText, setEditText] = useState('')
   const [emojiPickerFor, setEmojiPickerFor] = useState<string | null>(null)
   const [showSearch, setShowSearch] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const editInputRef = useRef<HTMLTextAreaElement>(null)
+  const isMuted = mutedChats.includes(selectedConversation?._id || '')
 
   const getOtherUser = () => {
     return selectedConversation?.participants.find((p: any) => p._id !== user?._id)
@@ -110,6 +114,23 @@ const ChatArea = () => {
 
   const otherUser = getOtherUser()
   const isOnline = onlineUsers.includes(otherUser?._id || '')
+
+  const handleViewProfile = () => {
+  navigate(`/profile/${otherUser?._id}`)
+  setShowMenu(false)
+  }
+
+  const handleClearChat = async () => {
+    if (!selectedConversation) return
+    await useChatStore.getState().clearChat(selectedConversation._id)
+    setShowMenu(false)
+  }
+
+  const handleMuteChat = () => {
+    if (!selectedConversation) return
+    toggleMute(selectedConversation._id)
+    setShowMenu(false)
+}
 
   useEffect(() => {
     if (!selectedConversation) return
@@ -504,11 +525,34 @@ const ChatArea = () => {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
           </button>
           <button
+            onClick={() => setShowMenu(prev => !prev)}
             className="w-9 h-9 rounded-full flex items-center justify-center transition-all text-gray-500 hover:text-indigo-600 hover:bg-gray-100 dark:hover:bg-gray-800"
             title="More options"
           >
             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
           </button>
+            {showMenu && (
+              <div className="absolute top-16 right-5 w-56 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+                <button
+                  onClick={handleViewProfile}
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  View Profile
+                </button>
+                <button
+                  onClick={handleClearChat}
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  Clear Chat
+                </button>
+                <button
+                  onClick={handleMuteChat}
+                  className="w-full px-4 py-3 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700"
+                >
+                  {isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
+                </button>
+              </div>
+            )}
         </div>
       </div>
 
@@ -626,6 +670,21 @@ const ChatArea = () => {
 
 const MessageInput = ({ onSend, conversationId, hasReply }: { onSend: (text: string) => void, conversationId: string, hasReply: boolean }) => {
   const { emitTyping, emitStopTyping } = useChatStore()
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const INPUT_EMOJIS = [
+  '😀','😂','❤️','🔥','👍',
+  '😭','😮','😡','🎉','👀'
+  ]
+  const insertEmoji = (emoji:string) => {
+
+  if (!textRef.current) return
+
+  textRef.current.value += emoji
+  handleInput()
+  textRef.current.focus()
+
+  setShowEmojiPicker(false)
+  }
   const textRef = useRef<HTMLTextAreaElement>(null)
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -666,9 +725,31 @@ const MessageInput = ({ onSend, conversationId, hasReply }: { onSend: (text: str
     <div className={`p-4 md:p-6 bg-transparent shrink-0 relative z-10 transition-all ${hasReply ? 'pt-16' : ''}`}>
       <div className="flex items-end gap-3 bg-white dark:bg-gray-800 p-2 pl-4 rounded-3xl shadow-xl shadow-gray-200/50 dark:shadow-black/20 border border-gray-100 dark:border-gray-700/60 transition-all focus-within:shadow-indigo-500/10 focus-within:border-indigo-200 dark:focus-within:border-indigo-500/30">
         
-        <button className="p-2 text-gray-400 hover:text-indigo-500 transition-colors mb-0.5">
+        <div className="relative">
+
+          <button
+            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+            className="p-2 text-gray-400 hover:text-indigo-500 transition-colors mb-0.5"
+          > 
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         </button>
+          {showEmojiPicker && (
+             <div className="absolute bottom-12 left-0 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 px-3 py-2 flex gap-2 z-50">
+                {INPUT_EMOJIS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    onClick={(e) => {
+                    e.stopPropagation()
+                    insertEmoji(emoji)
+                   }}
+                   className="text-xl hover:scale-125 transition-transform"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         <button className="p-2 text-gray-400 hover:text-indigo-500 transition-colors mb-0.5">
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" /></svg>
         </button>
