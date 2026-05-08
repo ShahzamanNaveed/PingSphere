@@ -29,6 +29,10 @@ const SettingsPage = () => {
   const [showNew, setShowNew] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteText, setDeleteText] = useState('')
+  const [isDeleting, setIsDeleting] = useState(false)
+
   const isProfileUnchanged =
     username.trim() === user?.username && bio.trim() === (user?.bio || '')
 
@@ -64,7 +68,34 @@ const SettingsPage = () => {
   const handleLogout = async () => {
     await logout()
     navigate('/login')
-  }
+    }
+
+    const handleDeleteAccount = async () => {
+      if (isDeleting) return
+      if (deleteText.trim() !== 'DELETE') {
+        return toast.error('Type DELETE to confirm')
+      }
+
+      setIsDeleting(true)
+
+      try {
+        await axiosInstance.delete('/users/delete')
+
+        toast.success('Account deleted')
+        setShowDeleteModal(false)
+        setDeleteText('')
+        await logout()
+
+        navigate('/login', { replace: true })
+
+      } catch (error: any) {
+        toast.error(
+          error.response?.data?.message || 'Failed to delete account'
+        )
+      } finally {
+        setIsDeleting(false)
+      }
+    }
 
   const navItems: { id: Tab; label: string; icon: React.ReactElement }[] = [
     { 
@@ -465,7 +496,7 @@ const SettingsPage = () => {
                   </div>
 
                   {/* Placeholder for future: delete account */}
-                  <div className="bg-white/50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/50 rounded-2xl p-5 flex items-center justify-between gap-4 opacity-60">
+                  <div className="bg-white/50 dark:bg-gray-900/20 border border-gray-100 dark:border-gray-800/50 rounded-2xl p-5 flex items-center justify-between gap-4">
                     <div>
                       <p className="font-bold text-gray-900 dark:text-white text-sm">Delete Account</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
@@ -473,10 +504,10 @@ const SettingsPage = () => {
                       </p>
                     </div>
                     <button
-                      disabled
-                      className="flex-shrink-0 bg-gray-100 dark:bg-gray-800 text-gray-400 font-bold px-4 py-2 rounded-xl text-sm cursor-not-allowed border border-transparent"
+                      onClick={() => setShowDeleteModal(true)}
+                      className="flex-shrink-0 bg-red-600 hover:bg-red-500 text-white font-bold px-4 py-2 rounded-xl text-sm transition-all"
                     >
-                      Soon
+                      Delete
                     </button>
                   </div>
                 </div>
@@ -485,6 +516,58 @@ const SettingsPage = () => {
           </div>
         </main>
       </div>
+      {showDeleteModal && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+
+    <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-3xl border border-red-100 dark:border-red-900/30 shadow-2xl p-6">
+
+      <div className="mb-6">
+        <h3 className="text-xl font-bold text-red-600 dark:text-red-400">
+          Delete Account
+        </h3>
+
+        <p className="text-sm text-gray-500 mt-2">
+          This will permanently delete your profile, chats, and messages.
+          This action cannot be undone.
+        </p>
+      </div>
+
+      <p className="text-sm font-medium mb-2">
+        Type <span className="text-red-500 font-bold">DELETE</span> to confirm:
+      </p>
+
+      <input
+        value={deleteText}
+        onChange={(e) => setDeleteText(e.target.value)}
+        className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-transparent mb-6 outline-none focus:ring-2 focus:ring-red-500/50"
+      />
+
+      <div className="flex justify-end gap-3">
+
+        <button
+          onClick={() => {
+            setShowDeleteModal(false)
+            setDeleteText('')
+          }}
+          className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 font-semibold"
+        >
+          Cancel
+        </button>
+
+        <button
+          disabled={deleteText.trim() !== 'DELETE' || isDeleting}
+          onClick={handleDeleteAccount}
+          className="px-4 py-2 rounded-xl bg-red-600 disabled:opacity-40 text-white font-bold"
+        >
+          {isDeleting ? 'Deleting...' : 'Delete Forever'}
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
     </div>
   )
 }
