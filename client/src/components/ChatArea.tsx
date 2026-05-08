@@ -90,6 +90,8 @@ const ChatArea = () => {
     clearSearch,
     searchResults,
     isSearching,
+    toggleMute,
+    mutedChats,
   } = useChatStore()
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -104,6 +106,7 @@ const ChatArea = () => {
   const [showMenu, setShowMenu] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const editInputRef = useRef<HTMLTextAreaElement>(null)
+  const isMuted = mutedChats.includes(selectedConversation?._id || '')
 
   const getOtherUser = () => {
     return selectedConversation?.participants.find((p: any) => p._id !== user?._id)
@@ -117,6 +120,11 @@ const ChatArea = () => {
     setShowMenu(false)
   }
 
+  const handleMuteChat = () => {
+    if (!selectedConversation) return
+    toggleMute(selectedConversation._id)
+    setShowMenu(false)
+}
 
   useEffect(() => {
     if (!selectedConversation) return

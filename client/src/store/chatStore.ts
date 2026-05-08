@@ -3,6 +3,7 @@ import toast from 'react-hot-toast'
 import axiosInstance from '../lib/axios'
 import { getSocket } from '../lib/socket'
 import useAuthStore from './authStore'
+const messageSound = new Audio('/sounds/message.mp3')
 
 interface User {
   _id: string
@@ -60,6 +61,7 @@ interface ChatStore {
   searchResults: Message[]
   isSearching: boolean
   isLoadingMore: boolean
+  mutedChats: string[]
   setSelectedConversation: (conversation: Conversation | null) => void
   getConversations: () => Promise<void>
   getUsers: () => Promise<void>
@@ -80,6 +82,7 @@ interface ChatStore {
   searchMessages: (conversationId: string, query: string) => Promise<void>
   clearSearch: () => void
   clearChat: (conversationId: string) => Promise<void>
+  toggleMute: (conversationId: string) => void
 }
 
 const useChatStore = create<ChatStore>((set, get) => ({
@@ -98,6 +101,7 @@ const useChatStore = create<ChatStore>((set, get) => ({
   searchResults: [],
   isSearching: false,
   isLoadingMore: false,
+  mutedChats: [],
 
   setSelectedConversation: (conversation) => {
     set({ selectedConversation: conversation, replyingTo: null, searchResults: [], isSearching: false })
@@ -321,14 +325,23 @@ const useChatStore = create<ChatStore>((set, get) => ({
             ? [...state.messages, message]
             : state.messages
 
-          if (state.selectedConversation?._id !== message.conversationId) {
-            unreadCounts = {
-              ...state.unreadCounts,
-              [message.conversationId]: (state.unreadCounts[message.conversationId] || 0) + 1,
+            const isMuted =state.mutedChats.includes(message.conversationId)
+            if (state.selectedConversation?._id !== message.conversationId)
+              {
+                unreadCounts = 
+                {
+                  ...state.unreadCounts,
+                  [message.conversationId]:
+                    (state.unreadCounts[message.conversationId] || 0) + 1,
+                }
+                if (!isMuted) 
+                  {
+                  messageSound.currentTime = 0
+                  messageSound.play().catch(() => {})
+                  }
+              } else {
+              get().markSeen(message.conversationId)
             }
-          } else {
-            get().markSeen(message.conversationId)
-          }
         }
 
         const updatedConversations = state.conversations
