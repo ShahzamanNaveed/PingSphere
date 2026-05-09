@@ -13,11 +13,11 @@ import protectRoute from '../middleware/protectRoute.js'
 
 const router = express.Router()
 
-router.get('/:conversationId', protectRoute, getMessages)
 router.get('/:conversationId/search', protectRoute, searchMessages)
+router.get('/:conversationId', protectRoute, getMessages)
 router.post('/', protectRoute, createMessage)
-router.delete('/:conversationId', protectRoute, clearChat)
 router.put('/:conversationId/seen', protectRoute, markMessagesSeen)
+router.delete('/:conversationId/clear', protectRoute, clearChat)
 router.delete('/:messageId', protectRoute, unsendMessage)
 router.put('/:messageId', protectRoute, editMessage)
 router.post('/:messageId/react', protectRoute, reactToMessage)
